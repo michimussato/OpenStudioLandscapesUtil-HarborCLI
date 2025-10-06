@@ -1,11 +1,11 @@
 <!-- TOC -->
-* [OpenStudioLandscapesUtil-ReadmeGenerator](#openstudiolandscapesutil-readmegenerator)
+* [OpenStudioLandscapesUtil-HarborCLI](#openstudiolandscapesutil-harborcli)
   * [Requirements](#requirements)
     * [venv](#venv)
   * [Installation](#installation)
   * [Usage](#usage)
   * [Tagging](#tagging)
-    * [Release Candidata](#release-candidata)
+    * [Release Candidate](#release-candidate)
     * [Main Release](#main-release)
 <!-- TOC -->
 

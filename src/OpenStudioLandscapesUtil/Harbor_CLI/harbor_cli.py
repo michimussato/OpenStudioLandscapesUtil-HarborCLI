@@ -68,7 +68,7 @@ _SU_METHODS= {
 SU_METHOD = _SU_METHODS["pkexec"]
 
 HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
-HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path("/home/michael/git/repos/OpenStudioLandscapes/.harbor3")
+HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path("~/git/repos/OpenStudioLandscapes/.harbor").expanduser().resolve()
 HARBOR_DOWNLOAD_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("download")
 HARBOR_BIN_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("bin")
 HARBOR_DATA_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("data")
