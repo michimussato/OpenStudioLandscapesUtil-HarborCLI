@@ -1,9 +1,112 @@
 [build-system]
-# AVOID CHANGING REQUIRES: IT WILL BE UPDATED BY PYSCAFFOLD!
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5"]
+requires = ["setuptools>=61.2"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
-# For smarter version schemes and other configuration options,
-# check out https://github.com/pypa/setuptools_scm
-version_scheme = "no-guess-dev"
+[project]
+name = "OpenStudioLandscapesUtil-HarborCLI"
+description = "A CLI or Harbor setup"
+authors = [{name = "Michael Mussato", email = "michimussato@gmail.com"}]
+maintainers = [{name = "Michael Mussato", email = "michimussato@gmail.com"}]
+license-files = ["LICENSE.txt"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python",
+]
+requires-python = ">=3.11"
+dependencies = [
+    'importlib-metadata; python_version<"3.8"',
+    "snakemd",
+    "requests",
+    "click",
+    "pyyaml",
+]
+dynamic = ["version"]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown; charset=UTF-8"
+# Change if running only on Windows, Mac or Linux (comma-separated)
+# Add here all kinds of additional classifiers as defined under
+# https://pypi.org/classifiers/
+
+[project.urls]
+Homepage = "https://github.com/michimussato/OpenStudioLandscapesUtil-HarborCLI"
+
+[project.optional-dependencies]
+# Add here additional requirements for extra features, to install with:
+# `pip install OpenStudioLandscapesUtil-ReadmeGenerator[PDF]` like:
+# PDF = ReportLab; RXP
+# Add here test requirements (semicolon/line-separated)
+testing = [
+    "setuptools",
+    "pytest",
+    "pytest-cov",
+    # OpenStudioLandscapes
+]
+dev = [
+    "OpenStudioLandscapesUtil-HarborCLI[testing]"
+]
+
+[project.entry-points]
+# Add here console scripts like:
+# For example:
+# console_scripts =
+# fibonacci = OpenStudioLandscapesUtil.Harbor_CLI.harbor_cli:run
+# And any other entry points, for example:
+# pyscaffold.cli =
+# awesome = pyscaffoldext.awesome.extension:AwesomeExtension
+
+[project.scripts]
+openstudiolandscapesutil-harborcli = "OpenStudioLandscapesUtil.Harbor_CLI.harbor_cli:run"
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+# Require a min/specific Python version (comma-separated conditions)
+# Add here dependencies of your project (line-separated), e.g. requests>=2.2,<3.0.
+# Version specifiers like >=2.2,<3.0 avoid problems due to API changes in
+# new major versions. This works if the required packages follow Semantic Versioning.
+# For more information, check out https://semver.org/.
+platforms = ["Linux"]
+packages = [
+    "OpenStudioLandscapesUtil.Harbor_CLI"
+]
+
+[tool.pytest.ini_options]
+# Specify command line options as you would do when invoking pytest directly.
+# e.g. --cov-report html (or xml) for html/xml output or --junitxml junit.xml
+# in order to write a coverage file that can be read by Jenkins.
+# CAUTION: --cov flags may prohibit setting breakpoints while debugging.
+# Comment those flags to avoid this pytest issue.
+addopts = """
+--cov OpenStudioLandscapesUtil.Harbor_CLI --cov-report term-missing
+--verbose"""
+norecursedirs = [
+    "dist",
+    "build",
+    ".tox",
+]
+testpaths = ["tests"]
+# Use pytest markers to select/deselect specific tests
+# markers =
+# slow: mark tests as slow (deselect with '-m "not slow"')
+# system: mark end-to-end system tests
+
+#[tool.devpi.upload]
+## Options for the devpi: PyPI server and packaging tool
+## VCS export must be deactivated since we are using setuptools-scm
+#no_vcs = "1"
+#formats = "bdist_wheel"
+
+#[tool.flake8]
+## Some sane defaults for the code style checker flake8
+#max_line_length = "88"
+#extend_ignore = "E203, W503"
+## ^  Black-compatible
+## E203 and W503 have edge cases handled by black
+#exclude = """
+#.tox
+#build
+#dist
+#.eggs
+#docs/conf.py"""
