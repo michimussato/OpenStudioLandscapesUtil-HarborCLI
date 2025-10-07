@@ -68,17 +68,17 @@ _SU_METHODS= {
 SU_METHOD = _SU_METHODS["pkexec"]
 
 HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
-HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path("~/git/repos/OpenStudioLandscapes/.harbor").expanduser().resolve()
+HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path(os.environ.get("HARBOR_ROOT_DIR", "~/git/repos/OpenStudioLandscapes/.harbor")).expanduser().resolve()
 HARBOR_DOWNLOAD_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("download")
 HARBOR_BIN_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("bin")
 HARBOR_DATA_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("data")
 HARBOR_CONFIG_ROOT: pathlib.Path = HARBOR_BIN_DIR
 HARBOR_PREPARE: pathlib.Path = HARBOR_BIN_DIR.joinpath("prepare")
 
-OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = "farm.evil"
+OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = os.environ.get("OPENSTUDIOLANDSCAPES__DOMAIN_LAN" ,"farm.evil")
 OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = "harbor.{OPENSTUDIOLANDSCAPES__DOMAIN_LAN}".format(OPENSTUDIOLANDSCAPES__DOMAIN_LAN=OPENSTUDIOLANDSCAPES__DOMAIN_LAN)
-OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = 80
-OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = "Harbor12345"
+OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", 80))
+OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD", "Harbor12345")
 
 HARBOR_CONFIG_DICT: dict = {
     "hostname": OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
@@ -257,16 +257,6 @@ def _configure() -> str:
     return harbor_yml
 
 
-# @run.command()
-# @click.option(
-#     "--out-dir",
-#     type=pathlib.Path,
-#     default=HARBOR_CONFIG_ROOT,
-#     show_default=True,
-#     help="Full Path where the harbor.yml will be saved.",
-#     required=True,
-#     prompt=True,
-# )
 def configure(
         out_dir: pathlib.Path,
         overwrite: bool = False,
@@ -294,35 +284,28 @@ def configure(
     return harbor_yml
 
 
-# @run.command()
-# @click.option(
-#     "--prepare-script",
-#     type=pathlib.Path,
-#     default=HARBOR_PREPARE,
-#     show_default=True,
-#     help="Full Path to the Harbor prepare script.",
-#     required=True,
-#     prompt=True,
-# )
 def prepare(
         prepare_script: pathlib.Path,
-        config_file: pathlib.Path,
+        config_file: pathlib.Path = None,
 ) -> CompletedProcess[bytes]:
     """Step 4"""
 
     prepare_script = prepare_script.expanduser().resolve()
 
+    if config_file is not None:
+        config_file = config_file.expanduser().resolve()
+
+        # if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
+        if not config_file.exists():
+            raise HarborCLIError(
+                f"`harbor.yml` file not found at {config_file.as_posix()}. "
+                f"Run `openstudiolandscapesutil-harborcli configure`."
+            )
+
     _logger.debug(prepare_script)
 
     if not prepare_script.exists():
         raise FileNotFoundError("`prepare` file not found. Not able to continue.")
-
-    # if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
-    if not config_file.exists():
-        raise HarborCLIError(
-            f"`harbor.yml` file not found at {config_file.as_posix()}. "
-            f"Run `openstudiolandscapesutil-harborcli configure`."
-        )
 
     if prepare_script.parent.joinpath("common").exists():
         raise HarborCLIError(
@@ -339,23 +322,42 @@ def prepare(
 
     cmd_prepare = [
         prepare_script.as_posix(),
-        "--conf",
-        config_file.as_posix(),
     ]
+
+    if config_file is not None:
+        cmd_prepare.extend(
+            [
+                "--conf",
+                config_file.as_posix()
+            ]
+        )
 
     _logger.debug(f"{' '.join(bash_c)} \"{' '.join(cmd_prepare)}\"")
 
-    ret = subprocess.run(
+    cmd = [
+        *bash_c,
+        ' '.join(cmd_prepare),
+    ]
+
+    _logger.debug(cmd)
+
+    proc = subprocess.Popen(
         [
             *bash_c,
             ' '.join(cmd_prepare),
         ],
-        # f"{' '.join(bash_c)} \"{' '.join(cmd_prepare)}\"",
-        shell=True,
-        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True,
+        shell=False,
     )
 
-    return ret
+    for line in proc.stdout:
+        sys.stdout.write(line)
+
+    proc.wait()
+
+    return proc.returncode
 
 
 def _systemd_unit_dict(
@@ -390,35 +392,15 @@ def _systemd_unit_dict(
     return unit_dict
 
 
-# @run.command()
-# # @click.option(
-# #     "--install",
-# #     is_flag=True,
-# #     # type=pathlib.Path,
-# #     # default=HARBOR_PREPARE,
-# #     # show_default=True,
-# #     help="Install systemd unit.",
-# #     required=True,
-# #     # prompt=True,
-# # )
-# @click.option(
-#     "--enable",
-#     is_flag=True,
-#     help="Enable systemd unit.",
-#     required=False,
-# )
-# @click.option(
-#     "--start",
-#     is_flag=True,
-#     help="Start systemd unit.",
-#     required=False,
-# )
 def systemd_install(
         enable: bool,
         start: bool,
         # install: bool,
+        outfile: pathlib.Path= HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name),  # this is just the temp file
 ) -> list[str | Any]:
     """Step 5"""
+
+    outfile = outfile.expanduser().resolve()
 
     _logger.debug(start)
     _logger.debug(enable)
@@ -464,7 +446,7 @@ def systemd_install(
 
     unit.read_dict(unit_dict)
 
-    unit_file_tmp = HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name)
+    unit_file_tmp = outfile
 
     unit_file_tmp.parent.mkdir(parents=True, exist_ok=True)
 
@@ -558,39 +540,10 @@ def systemd_install(
     return cmd
 
 
-# @run.command()
-# # @click.option(
-# #     "--install",
-# #     is_flag=True,
-# #     # type=pathlib.Path,
-# #     # default=HARBOR_PREPARE,
-# #     # show_default=True,
-# #     help="Install systemd unit.",
-# #     required=True,
-# #     # prompt=True,
-# # )
-# @click.option(
-#     "--disable",
-#     is_flag=True,
-#     help="Disable systemd unit.",
-#     required=False,
-# )
-# @click.option(
-#     "--stop",
-#     is_flag=True,
-#     help="Stop systemd unit.",
-#     required=True,
-# )
-# @click.option(
-#     "--remove",
-#     is_flag=True,
-#     help="Remove systemd unit.",
-#     required=False,
-# )
 def systemd_uninstall(
-        disable: bool,
-        stop: bool,
-        remove: bool,
+        disable: bool = True,
+        stop: bool = True,
+        remove: bool = True,
 ) -> list[str | Any]:
 
     if remove:
@@ -604,12 +557,7 @@ def systemd_uninstall(
     systemctl_disable = [
         shutil.which("systemctl"),
         "disable",
-        SYSTEMD_UNIT.name,
-    ]
-
-    systemctl_stop = [
-        shutil.which("systemctl"),
-        "stop",
+        "--now",
         SYSTEMD_UNIT.name,
     ]
 
@@ -624,31 +572,12 @@ def systemd_uninstall(
     ]
 
     uninstall_service = [
-        *systemctl_stop,
+        *systemctl_disable,
+        "&&",
+        *remove_service,
+        "&&",
+        *daemon_reload,
     ]
-
-    if disable:
-        uninstall_service.extend(
-            [
-                "&&",
-                *systemctl_disable
-            ]
-        )
-
-    if remove:
-        uninstall_service.extend(
-            [
-                "&&",
-                *remove_service
-            ]
-        )
-
-        uninstall_service.extend(
-            [
-                "&&",
-                *daemon_reload,
-            ]
-        )
 
     _logger.debug(f"{uninstall_service = }")
 
@@ -687,7 +616,7 @@ def systemd_uninstall(
 
 def eval_(
         args: argparse.Namespace,
-) -> Union[pathlib.Path, subprocess.CompletedProcess, None]:
+) -> Union[pathlib.Path, subprocess.CompletedProcess, list, None]:
 
     _logger.debug(f"{args = }")
 
@@ -716,13 +645,23 @@ def eval_(
                 _logger.debug(f"{result = }")
                 return result
 
-        elif args.prepare_command == "run":
-            result: subprocess.CompletedProcess = _cli_run(args)
+        elif args.prepare_command == "install":
+            result: subprocess.CompletedProcess = _cli_install(args)
             _logger.debug(f"{result = }")
             return result
 
     elif args.command == "systemd":
-        pass
+        _logger.debug(f"{args.systemd_command = }")
+
+        if args.systemd_command == "install":
+            result: list = _cli_systemd_install(args)
+            _logger.debug(f"{result = }")
+            return result
+
+        if args.systemd_command == "uninstall":
+            result: list = _cli_systemd_uninstall()
+            _logger.debug(f"{result = }")
+            return result
 
 
 def _cli_download(
@@ -761,14 +700,34 @@ def _cli_configure(
     return result
 
 
-def _cli_run(
+def _cli_install(
         args: argparse.Namespace,
 ) -> subprocess.CompletedProcess:
 
     result: subprocess.CompletedProcess = prepare(
         prepare_script=args.prepare_script,
-        config_file=args.config_file,
+        config_file=None,  # args.config_file,
     )
+
+    return result
+
+
+def _cli_systemd_install(
+        args: argparse.Namespace,
+) -> list:
+
+    result: list = systemd_install(
+        enable=args.enable,
+        start=args.start,
+        outfile=args.outfile,
+    )
+
+    return result
+
+
+def _cli_systemd_uninstall() -> list:
+
+    result: list = systemd_uninstall()
 
     return result
 
@@ -918,14 +877,11 @@ def parse_args(args):
 
     mutex_configure.add_argument(
         "--dry-run",
-        # "-c",
         dest="dry_run",
         action="store_true",
         required=False,
         default=False,
         help="Print the configuration to stdout.",
-        # metavar="CLEAR",
-        # type=bool,
     )
 
     mutex_configure.add_argument(
@@ -941,20 +897,17 @@ def parse_args(args):
 
     subparser_configure.add_argument(
         "--overwrite",
-        # "-c",
         dest="overwrite",
         action="store_true",
         required=False,
         default=False,
         help="Force overwriting existing harbor.yml file.",
-        # metavar="CLEAR",
-        # type=bool,
     )
 
     ## PREPARE
 
     subparser_run_prepare = prepare_subparsers.add_parser(
-        name="run",
+        name="install",
         formatter_class=_formatter,
     )
 
@@ -969,22 +922,89 @@ def parse_args(args):
         type=pathlib.Path,
     )
 
-    subparser_run_prepare.add_argument(
-        "--config-file",
-        "-c",
-        dest="config_file",
+    # This is not working as expected:
+    # $ ./prepare --help
+    # prepare base dir is set to /home/michael/git/repos/OpenStudioLandscapesUtil-HarborCLI/test/extracted
+    # Usage: main.py prepare [OPTIONS]
+    #
+    # Options:
+    #   --conf TEXT   the path of Harbor configuration file
+    #   --with-trivy  the Harbor instance is to be deployed with Trivy
+    #   --help        Show this message and exit.
+    # Clean up the input dir
+    #
+    # subparser_run_prepare.add_argument(
+    #     "--config-file",
+    #     "-c",
+    #     dest="config_file",
+    #     required=False,
+    #     default=pathlib.Path().cwd().joinpath("harbor.yml"),
+    #     help="Full path to the harbor.yml config file.",
+    #     metavar="CONFIG_FILE",
+    #     type=pathlib.Path,
+    # )
+
+    ####################################################################################################################
+    # SYSTEMD
+
+    base_subparser_systemd = base_subparsers.add_parser(
+        name="systemd",
+        formatter_class=_formatter,
+    )
+
+    systemd_subparsers = base_subparser_systemd.add_subparsers(
+        dest="systemd_command",
+        help="A command generator for setting up "
+             "systemd with Harbor."
+    )
+
+    ## INSTALL
+
+    subparser_install = systemd_subparsers.add_parser(
+        name="install",
+        formatter_class=_formatter,
+        help="Install systemd unit.",
+    )
+
+    subparser_install.add_argument(
+        "--outfile",
+        "-f",
+        dest="outfile",
         required=False,
-        default=pathlib.Path().cwd().joinpath("harbor.yml"),
-        help="Full path to the harbor.yml config file.",
-        metavar="CONFIG_FILE",
+        default=HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name),
+        help="Where to save the intermediate unit file. "
+             "It will get copied to the final destination "
+             "upon command completion.",
+        metavar="OUTFILE",
         type=pathlib.Path,
     )
 
+    subparser_install.add_argument(
+        "--enable",
+        dest="enable",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Enable systemd unit.",
+    )
 
+    subparser_install.add_argument(
+        "--start",
+        # "-d",
+        dest="start",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Start systemd unit.",
+    )
 
+    ## UNINSTALL
 
-
-
+    subparser_uninstall = systemd_subparsers.add_parser(
+        name="uninstall",
+        formatter_class=_formatter,
+        help="Stop, disable and uninstall systemd unit.",
+    )
 
     return main_parser.parse_args()
 
@@ -1018,15 +1038,9 @@ def main(args):
       args (List[str]): command line parameters as list of strings
           (for example  ``["--verbose", "42"]``).
     """
-    # from pprint import pprint
-    # pprint(args, indent=2)
     args: argparse.Namespace = parse_args(args)
-    # pprint(vars(args), indent=2)
-    # setup_logging(args)
     setup_logging(args)
-    # _logger.debug("Starting crazy calculations...")
     eval_(args)
-    # _logger.info("Script ends here")
 
 
 def run():
