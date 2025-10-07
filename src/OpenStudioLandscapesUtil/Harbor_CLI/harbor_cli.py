@@ -28,7 +28,7 @@ import subprocess
 import tarfile
 import typing
 from subprocess import CompletedProcess
-from typing import Union, Any
+from typing import Union, Any, Callable
 
 import requests
 import logging
@@ -204,22 +204,22 @@ class HarborCLIError(Exception):
 # )
 def download(
         url: str,
-        destination_folder: pathlib.Path,
+        destination_directory: pathlib.Path,
 ) -> Union[pathlib.Path, Exception]:
     """Step 1"""
 
     _logger.debug(url)
-    _logger.debug(destination_folder)
+    _logger.debug(destination_directory)
 
-    destination_folder.mkdir(parents=True, exist_ok=True)
+    destination_directory.mkdir(parents=True, exist_ok=True)
 
-    if not destination_folder.exists():
-        destination_folder.mkdir(
+    if not destination_directory.exists():
+        destination_directory.mkdir(
             parents=True, exist_ok=True
         )  # create folder if it does not exist
 
     tar_filename = url.split("/")[-1].replace(" ", "_")  # be careful with file names
-    tar_file_path = destination_folder / tar_filename
+    tar_file_path = destination_directory / tar_filename
 
     r = requests.get(url, stream=True)
     if r.ok:
@@ -263,6 +263,14 @@ def extract(
         tar_file: pathlib.Path,
 ) -> Union[pathlib.Path, Exception]:
     """Step 2"""
+
+    if extract_to.exists():
+        if bool(extract_to.iterdir()):
+            raise HarborCLIError(
+                f"{extract_to.as_posix()} is not empty. "
+                f"Aborted. Clear it first if that's "
+                f"really what you want (`--clear`)."
+            )
 
     _logger.debug(extract_to)
     _logger.debug(tar_file)
@@ -695,6 +703,58 @@ def systemd_uninstall(
 # executable/script.
 
 
+def eval_(
+        args: argparse.Namespace,
+) -> Union[pathlib.Path, None]:
+
+    _logger.debug(f"{args = }")
+
+    _logger.debug(f"{args.command = }")
+
+    if args.command == "prepare":
+        _logger.debug(f"{args.prepare_command = }")
+
+        if args.prepare_command == "download":
+            result: pathlib.Path = _cli_download(args)
+            _logger.debug(f"{result = }")
+            return result
+
+        elif args.prepare_command == "extract":
+            result: pathlib.Path = _cli_extract(args)
+            _logger.debug(f"{result = }")
+            return result
+
+    elif args.command == "systemd":
+        pass
+
+
+def _cli_download(
+        args: argparse.Namespace,
+) -> pathlib.Path:
+
+    result = download(
+        url=args.url,
+        destination_directory=args.destination_directory,
+    )
+
+    return result
+
+
+def _cli_extract(
+        args: argparse.Namespace,
+) -> pathlib.Path:
+
+    result = extract(
+        extract_to=args.extract_to,
+        tar_file=args.tar_file,
+    )
+
+    return result
+
+
+_formatter = argparse.ArgumentDefaultsHelpFormatter
+
+
 def parse_args(args):
     """Parse command line parameters
 
@@ -705,15 +765,18 @@ def parse_args(args):
     Returns:
       :obj:`argparse.Namespace`: command line parameters namespace
     """
-    base_parser = argparse.ArgumentParser(description="A tool to generate a README.md")
-    base_subparsers = base_parser.add_subparsers()
-    base_parser.add_argument(
+    main_parser = argparse.ArgumentParser(
+        prog="OpenStudioLandscapes Harbor CLI",
+        description="A tool to generate a README.md",
+        formatter_class=_formatter,
+    )
+    main_parser.add_argument(
         "--version",
         action="version",
         version=f"OpenStudioLandscapesUtil-ReadmeGenerator {__version__}",
     )
     # parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
-    base_parser.add_argument(
+    main_parser.add_argument(
         "-v",
         "--verbose",
         dest="loglevel",
@@ -723,7 +786,7 @@ def parse_args(args):
         # https://stackoverflow.com/questions/6076690/verbose-level-with-argparse-and-multiple-v-options
         const=logging.INFO,
     )
-    base_parser.add_argument(
+    main_parser.add_argument(
         "-vv",
         "--very-verbose",
         dest="loglevel",
@@ -732,50 +795,90 @@ def parse_args(args):
         const=logging.DEBUG,
     )
 
-    # parser_prepare = argparse.ArgumentParser(
-    #     # prog="Prepare",
-    #     parents=[base_parser],
-    #     add_help=False,
-    # )
-    # parser_setup = argparse.ArgumentParser(add_help=False)
-    # parser_systemd = argparse.ArgumentParser(add_help=False)
-
-    # PREPARE
-
-    subparser_prepare = base_subparsers.add_parser(
-        name="prepare",
-        parents=[base_parser],
-        add_help=False,
+    base_subparsers = main_parser.add_subparsers(
+        dest="command",
     )
 
-    prepare_subparsers = subparser_prepare.add_subparsers()
+    ####################################################################################################################
+    # PREPARE
+
+    base_subparser_prepare = base_subparsers.add_parser(
+        name="prepare",
+        formatter_class=_formatter,
+    )
+
+    prepare_subparsers = base_subparser_prepare.add_subparsers(
+        dest="prepare_command",
+    )
 
     ## DOWNLOAD
 
     subparser_download = prepare_subparsers.add_parser(
         name="download",
-        parents=[subparser_prepare],
-        add_help=False,
+        formatter_class=_formatter,
+        help="Download the Harbor Release from GitHub. "
+             "Existing files will be overwritten.",
     )
-
-
 
     subparser_download.add_argument(
         "--url",
         "-u",
         dest="url",
-        required=True,
+        required=False,
         default=HARBOR_URL,
-        help="URL of the Harbor Installer TAR. "
-             "For more info, see: "
-             "https://github.com/goharbor/harbor/releases",
+        help="URL of the Harbor Installer TAR.",
         metavar="URL",
         type=str,
     )
 
+    subparser_download.add_argument(
+        "--destination-directory",
+        "-d",
+        dest="destination_directory",
+        required=False,
+        default=pathlib.Path().cwd(),
+        help="Where to save the downloaded files.",
+        metavar="DESTINATION_DIRECTORY",
+        type=pathlib.Path,
+    )
+
+    ## EXTRACT
+
+    subparser_download = prepare_subparsers.add_parser(
+        name="extract",
+        formatter_class=_formatter,
+    )
+
+    mutex_extract = subparser_download.add_mutually_exclusive_group(
+        required=True,
+    )
+
+    mutex_extract.add_argument(
+        "--extract-to",
+        "-x",
+        dest="extract_to",
+        required=False,
+        default=HARBOR_DOWNLOAD_DIR,
+        help="Full path where the files will be extracted to.",
+        metavar="EXTRACT_TO",
+        type=pathlib.Path,
+    )
+
+    mutex_extract.add_argument(
+        "--clear",
+        "-c",
+        dest="clear",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Remove the extracted files.",
+        # metavar="CLEAR",
+        # type=bool,
+    )
 
 
-    return base_parser.parse_args(args)
+
+    return main_parser.parse_args()
 
 
 def setup_logging(
@@ -807,10 +910,14 @@ def main(args):
       args (List[str]): command line parameters as list of strings
           (for example  ``["--verbose", "42"]``).
     """
+    # from pprint import pprint
+    # pprint(args, indent=2)
     args: argparse.Namespace = parse_args(args)
+    # pprint(vars(args), indent=2)
+    # setup_logging(args)
     setup_logging(args)
     # _logger.debug("Starting crazy calculations...")
-    pass
+    eval_(args)
     # _logger.info("Script ends here")
 
 
