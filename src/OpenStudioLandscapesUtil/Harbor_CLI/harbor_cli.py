@@ -161,6 +161,8 @@ def download(
 ) -> Union[pathlib.Path, Exception]:
     """Step 1"""
 
+    destination_directory = destination_directory.expanduser().resolve()
+
     _logger.debug(url)
     _logger.debug(destination_directory)
 
@@ -199,6 +201,13 @@ def extract(
     """Step 2"""
 
     extract_to = extract_to.expanduser().resolve()
+    tar_file = tar_file.expanduser().resolve()
+
+    if extract_to == tar_file.parent:
+        raise HarborCLIError(
+            f"{tar_file.as_posix()} should be extracted to a subdirectory."
+        ) from FileNotFoundError(tar_file)
+
 
     if extract_to.exists():
         print(list(extract_to.iterdir()))
@@ -208,8 +217,6 @@ def extract(
                 f"Aborted. Clear it first if that's "
                 f"really what you want."
             )
-
-    tar_file = tar_file.expanduser().resolve()
 
     if not tar_file.exists():
         raise HarborCLIError(
@@ -310,8 +317,12 @@ def prepare(
     if not prepare_script.exists():
         raise FileNotFoundError("`prepare` file not found. Not able to continue.")
 
-    if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
-        raise FileNotFoundError("`harbor.yml` file not found. Run `openstudiolandscapesutil-harborcli configure`.")
+    # if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
+    if not config_file.exists():
+        raise HarborCLIError(
+            f"`harbor.yml` file not found at {config_file.as_posix()}. "
+            f"Run `openstudiolandscapesutil-harborcli configure`."
+        )
 
     if prepare_script.parent.joinpath("common").exists():
         raise HarborCLIError(
@@ -332,8 +343,14 @@ def prepare(
         config_file.as_posix(),
     ]
 
+    _logger.debug(f"{' '.join(bash_c)} \"{' '.join(cmd_prepare)}\"")
+
     ret = subprocess.run(
-        f"{' '.join(bash_c)} \"{' '.join(cmd_prepare)}\"",
+        [
+            *bash_c,
+            ' '.join(cmd_prepare),
+        ],
+        # f"{' '.join(bash_c)} \"{' '.join(cmd_prepare)}\"",
         shell=True,
         check=True,
     )
