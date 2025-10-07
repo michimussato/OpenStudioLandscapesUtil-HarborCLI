@@ -538,7 +538,7 @@ def systemd_install(
     #     check=True,
     # )
 
-    print("Execute the following command manually:")
+    _logger.info("Execute the following command manually:")
     print(f"{' '.join(sudo_bash_c)} \"{' '.join(install_service)}\"")
 
     return cmd
@@ -606,7 +606,7 @@ def systemd_uninstall(
     #     check=True,
     # )
 
-    print("Execute the following command manually:")
+    _logger.info("Execute the following command manually:")
     print(f"{' '.join(sudo_bash_c)} \"{' '.join(uninstall_service)}\"")
 
     return cmd

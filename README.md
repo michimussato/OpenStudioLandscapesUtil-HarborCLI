@@ -102,10 +102,22 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 openstudiolandscapesutil-harborcli systemd install --enable --start
 ```
 
+To directly execute the returned command:
+
+```shell
+eval $(openstudiolandscapesutil-harborcli systemd install --enable --start)
+```
+
 #### Uninstall
 
 ```shell
 openstudiolandscapesutil-harborcli systemd uninstall
+```
+
+To directly execute the returned command:
+
+```shell
+eval $(openstudiolandscapesutil-harborcli systemd uninstall)
 ```
 
 ## Tagging
