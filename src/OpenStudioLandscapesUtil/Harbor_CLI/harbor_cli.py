@@ -155,53 +155,6 @@ class HarborCLIError(Exception):
 # when using this Python module as a library.
 
 
-# # CLI
-#
-# @click.group()
-# @click.option(
-#     "--verbosity",
-#     "-v",
-#     is_flag=False,
-#     default="INFO",
-#     help=f"Set verbosity of output: {', '.join(logging.getLevelNamesMapping().keys())}",
-# )
-# def run(verbosity):
-#     """A Harbor CLI entrypoint."""
-#
-#     level = logging.getLevelName(verbosity)
-#
-#     if verbosity not in logging.getLevelNamesMapping().keys():
-#         raise ValueError("Invalid verbosity level: {}".format(verbosity))
-#
-#     logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
-#     logging.basicConfig(
-#         level=level, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
-#     )
-#
-#     _logger.debug(logging.getLevelName(_logger.getEffectiveLevel()))
-#
-#     _logger.info("Logging setup complete")
-
-
-# @run.command()
-# @click.option(
-#     "--url",
-#     type=click.STRING,
-#     default=HARBOR_URL,
-#     show_default=True,
-#     help="URL of the Harbor installer",
-#     required=True,
-#     prompt=True,
-# )
-# @click.option(
-#     "--destination-folder",
-#     type=pathlib.Path,
-#     default=HARBOR_DOWNLOAD_DIR,
-#     show_default=True,
-#     help="URL of the Harbor installer",
-#     required=True,
-#     prompt=True,
-# )
 def download(
         url: str,
         destination_directory: pathlib.Path,
@@ -239,38 +192,30 @@ def download(
         )
 
 
-# @run.command()
-# @click.option(
-#     "--extract-to",
-#     type=pathlib.Path,
-#     default=HARBOR_BIN_DIR,
-#     show_default=True,
-#     help="Full Path of the destination folder",
-#     required=True,
-#     prompt=True,
-# )
-# @click.option(
-#     "--tar-file",
-#     type=pathlib.Path,
-#     default=HARBOR_DOWNLOAD_DIR.joinpath("harbor-online-installer-v2.12.2.tgz"),
-#     show_default=True,
-#     help="Full Path to the Harbor TAR installer.",
-#     required=True,
-#     prompt=True,
-# )
 def extract(
         extract_to: pathlib.Path,
         tar_file: pathlib.Path,
 ) -> Union[pathlib.Path, Exception]:
     """Step 2"""
 
+    extract_to = extract_to.expanduser().resolve()
+
     if extract_to.exists():
-        if bool(extract_to.iterdir()):
+        print(list(extract_to.iterdir()))
+        if bool(list(extract_to.iterdir())):
             raise HarborCLIError(
                 f"{extract_to.as_posix()} is not empty. "
                 f"Aborted. Clear it first if that's "
-                f"really what you want (`--clear`)."
+                f"really what you want."
             )
+
+    tar_file = tar_file.expanduser().resolve()
+
+    if not tar_file.exists():
+        raise HarborCLIError(
+            f"{tar_file.as_posix()} not found."
+        ) from FileNotFoundError(tar_file)
+
 
     _logger.debug(extract_to)
     _logger.debug(tar_file)
@@ -317,13 +262,22 @@ def _configure() -> str:
 # )
 def configure(
         out_dir: pathlib.Path,
+        overwrite: bool = False,
 ) -> Union[pathlib.Path, Exception]:
     """Step 3"""
+
+    out_dir: pathlib.Path = out_dir.expanduser().resolve()
 
     _logger.debug(out_dir)
 
     harbor_yml: pathlib.Path = out_dir.joinpath("harbor.yml")
     harbor_yml.parent.mkdir(parents=True, exist_ok=True)
+
+    if not overwrite:
+        if harbor_yml.exists():
+            raise HarborCLIError(
+                f"{harbor_yml.as_posix()} already exists."
+            ) from FileExistsError(harbor_yml)
 
     harbor_yml_data: str = _configure()
 
@@ -345,8 +299,11 @@ def configure(
 # )
 def prepare(
         prepare_script: pathlib.Path,
+        config_file: pathlib.Path,
 ) -> CompletedProcess[bytes]:
     """Step 4"""
+
+    prepare_script = prepare_script.expanduser().resolve()
 
     _logger.debug(prepare_script)
 
@@ -355,6 +312,12 @@ def prepare(
 
     if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
         raise FileNotFoundError("`harbor.yml` file not found. Run `openstudiolandscapesutil-harborcli configure`.")
+
+    if prepare_script.parent.joinpath("common").exists():
+        raise HarborCLIError(
+            "Harbor prepare has already been run. Remove "
+            "`common` directory first before rerunning."
+        ) from FileExistsError(prepare_script.parent.joinpath("common"))
 
     _logger.debug("Preparing Harbor...")
 
@@ -365,6 +328,8 @@ def prepare(
 
     cmd_prepare = [
         prepare_script.as_posix(),
+        "--conf",
+        config_file.as_posix(),
     ]
 
     ret = subprocess.run(
@@ -705,7 +670,7 @@ def systemd_uninstall(
 
 def eval_(
         args: argparse.Namespace,
-) -> Union[pathlib.Path, None]:
+) -> Union[pathlib.Path, subprocess.CompletedProcess, None]:
 
     _logger.debug(f"{args = }")
 
@@ -721,6 +686,21 @@ def eval_(
 
         elif args.prepare_command == "extract":
             result: pathlib.Path = _cli_extract(args)
+            _logger.debug(f"{result = }")
+            return result
+
+        elif args.prepare_command == "configure":
+            if args.dry_run:
+                # from pprint import pprint
+                print(_configure())
+                return None
+            else:
+                result = _cli_configure(args)
+                _logger.debug(f"{result = }")
+                return result
+
+        elif args.prepare_command == "run":
+            result: subprocess.CompletedProcess = _cli_run(args)
             _logger.debug(f"{result = }")
             return result
 
@@ -747,6 +727,30 @@ def _cli_extract(
     result = extract(
         extract_to=args.extract_to,
         tar_file=args.tar_file,
+    )
+
+    return result
+
+
+def _cli_configure(
+        args: argparse.Namespace,
+) -> pathlib.Path:
+
+    result: pathlib.Path = configure(
+        out_dir=args.destination_directory,
+        overwrite=args.overwrite,
+    )
+
+    return result
+
+
+def _cli_run(
+        args: argparse.Namespace,
+) -> subprocess.CompletedProcess:
+
+    result: subprocess.CompletedProcess = prepare(
+        prepare_script=args.prepare_script,
+        config_file=args.config_file,
     )
 
     return result
@@ -844,37 +848,124 @@ def parse_args(args):
 
     ## EXTRACT
 
-    subparser_download = prepare_subparsers.add_parser(
+    subparser_extract = prepare_subparsers.add_parser(
         name="extract",
         formatter_class=_formatter,
     )
 
-    mutex_extract = subparser_download.add_mutually_exclusive_group(
-        required=True,
-    )
-
-    mutex_extract.add_argument(
+    subparser_extract.add_argument(
         "--extract-to",
         "-x",
         dest="extract_to",
         required=False,
-        default=HARBOR_DOWNLOAD_DIR,
-        help="Full path where the files will be extracted to.",
+        default=pathlib.Path().cwd(),
+        help="Full path where the files will be extracted to "
+             "(no subdirectories will be created).",
         metavar="EXTRACT_TO",
         type=pathlib.Path,
     )
 
-    mutex_extract.add_argument(
-        "--clear",
-        "-c",
-        dest="clear",
+    subparser_extract.add_argument(
+        "--tar-file",
+        "-f",
+        dest="tar_file",
+        required=True,
+        # default=None,
+        help="Full path to the downloaded Harbor Release tar.",
+        metavar="TAR_FILE",
+        type=pathlib.Path,
+    )
+
+    # Todo
+    #  - [ ] --clear
+    # mutex_extract.add_argument(
+    #     "--clear",
+    #     "-c",
+    #     dest="clear",
+    #     action="store_true",
+    #     required=False,
+    #     default=False,
+    #     help="Remove the extracted files.",
+    #     # metavar="CLEAR",
+    #     # type=bool,
+    # )
+
+    ## CONFIGURE
+
+    subparser_configure = prepare_subparsers.add_parser(
+        name="configure",
+        formatter_class=_formatter,
+    )
+
+    mutex_configure = subparser_configure.add_mutually_exclusive_group()
+
+    mutex_configure.add_argument(
+        "--dry-run",
+        # "-c",
+        dest="dry_run",
         action="store_true",
         required=False,
         default=False,
-        help="Remove the extracted files.",
+        help="Print the configuration to stdout.",
         # metavar="CLEAR",
         # type=bool,
     )
+
+    mutex_configure.add_argument(
+        "--destination-directory",
+        "-d",
+        dest="destination_directory",
+        required=False,
+        default=pathlib.Path().cwd(),
+        help="Directory where to save the harbor.yml file.",
+        metavar="DESTINATION_DIRECTORY",
+        type=pathlib.Path,
+    )
+
+    subparser_configure.add_argument(
+        "--overwrite",
+        # "-c",
+        dest="overwrite",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Force overwriting existing harbor.yml file.",
+        # metavar="CLEAR",
+        # type=bool,
+    )
+
+    ## PREPARE
+
+    subparser_run_prepare = prepare_subparsers.add_parser(
+        name="run",
+        formatter_class=_formatter,
+    )
+
+    subparser_run_prepare.add_argument(
+        "--prepare-script",
+        "-s",
+        dest="prepare_script",
+        required=True,
+        default=pathlib.Path().cwd().joinpath("prepare"),
+        help="Full path to the extracted prepare script.",
+        metavar="PREPARE_SCRIPT",
+        type=pathlib.Path,
+    )
+
+    subparser_run_prepare.add_argument(
+        "--config-file",
+        "-c",
+        dest="config_file",
+        required=False,
+        default=pathlib.Path().cwd().joinpath("harbor.yml"),
+        help="Full path to the harbor.yml config file.",
+        metavar="CONFIG_FILE",
+        type=pathlib.Path,
+    )
+
+
+
+
 
 
 
