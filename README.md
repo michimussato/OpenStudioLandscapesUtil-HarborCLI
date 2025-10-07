@@ -90,13 +90,13 @@ openstudiolandscapesutil-harborcli prepare install
 
 ### Systemd
 
+`cwd` matters.
+
 ```shell
 cd ~/git/repos/OpenStudioLandscapes/.harbor
 ```
 
 #### Install
-
-`cwd` matters.
 
 ```shell
 openstudiolandscapesutil-harborcli systemd install --enable --start
