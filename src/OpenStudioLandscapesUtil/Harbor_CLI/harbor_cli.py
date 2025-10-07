@@ -69,11 +69,15 @@ SU_METHOD = _SU_METHODS["pkexec"]
 
 HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
 HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path(os.environ.get("HARBOR_ROOT_DIR", "~/git/repos/OpenStudioLandscapes/.harbor")).expanduser().resolve()
-HARBOR_DOWNLOAD_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("download")
-HARBOR_BIN_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("bin")
-HARBOR_DATA_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath("data")
+_HARBOR_DOWNLOAD_DIR: str = "download"
+HARBOR_DOWNLOAD_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath(_HARBOR_DOWNLOAD_DIR)
+_HARBOR_BIN_DIR: str = "bin"
+HARBOR_BIN_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath(_HARBOR_BIN_DIR)
+_HARBOR_DATA_DIR: str = "data"
+HARBOR_DATA_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath(_HARBOR_DATA_DIR)
 HARBOR_CONFIG_ROOT: pathlib.Path = HARBOR_BIN_DIR
-HARBOR_PREPARE: pathlib.Path = HARBOR_BIN_DIR.joinpath("prepare")
+_HARBOR_PREPARE: str = "prepare"
+HARBOR_PREPARE: pathlib.Path = HARBOR_BIN_DIR.joinpath(_HARBOR_PREPARE)
 
 OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = os.environ.get("OPENSTUDIOLANDSCAPES__DOMAIN_LAN" ,"farm.evil")
 OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = "harbor.{OPENSTUDIOLANDSCAPES__DOMAIN_LAN}".format(OPENSTUDIOLANDSCAPES__DOMAIN_LAN=OPENSTUDIOLANDSCAPES__DOMAIN_LAN)
@@ -534,8 +538,8 @@ def systemd_install(
     #     check=True,
     # )
 
-    _logger.info("Execute the following command manually:")
-    _logger.info(f"\n{' '.join(sudo_bash_c)} \"{' '.join(install_service)}\"")
+    print("Execute the following command manually:")
+    print(f"{' '.join(sudo_bash_c)} \"{' '.join(install_service)}\"")
 
     return cmd
 
@@ -602,8 +606,8 @@ def systemd_uninstall(
     #     check=True,
     # )
 
-    _logger.info("Execute the following command manually:")
-    _logger.info(f"\n{' '.join(sudo_bash_c)} \"{' '.join(uninstall_service)}\"")
+    print("Execute the following command manually:")
+    print(f"{' '.join(sudo_bash_c)} \"{' '.join(uninstall_service)}\"")
 
     return cmd
 
@@ -747,7 +751,8 @@ def parse_args(args):
     """
     main_parser = argparse.ArgumentParser(
         prog="OpenStudioLandscapes Harbor CLI",
-        description="A tool to generate a README.md",
+        description="A tool to facilitate Harbor setup and "
+                    "getting it up and running using systemd.",
         formatter_class=_formatter,
     )
     main_parser.add_argument(
@@ -816,7 +821,7 @@ def parse_args(args):
         "-d",
         dest="destination_directory",
         required=False,
-        default=pathlib.Path().cwd(),
+        default=pathlib.Path().cwd().joinpath(_HARBOR_DOWNLOAD_DIR),
         help="Where to save the downloaded files.",
         metavar="DESTINATION_DIRECTORY",
         type=pathlib.Path,
@@ -834,7 +839,7 @@ def parse_args(args):
         "-x",
         dest="extract_to",
         required=False,
-        default=pathlib.Path().cwd(),
+        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR),
         help="Full path where the files will be extracted to "
              "(no subdirectories will be created).",
         metavar="EXTRACT_TO",
@@ -846,7 +851,8 @@ def parse_args(args):
         "-f",
         dest="tar_file",
         required=True,
-        # default=None,
+        # Todo
+        #  - [ ] default=pathlib.Path().cwd().joinpath(_HARBOR_DOWNLOAD_DIR, "harbor-*.tgz"),
         help="Full path to the downloaded Harbor Release tar.",
         metavar="TAR_FILE",
         type=pathlib.Path,
@@ -889,7 +895,7 @@ def parse_args(args):
         "-d",
         dest="destination_directory",
         required=False,
-        default=pathlib.Path().cwd(),
+        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR),
         help="Directory where to save the harbor.yml file.",
         metavar="DESTINATION_DIRECTORY",
         type=pathlib.Path,
@@ -915,8 +921,8 @@ def parse_args(args):
         "--prepare-script",
         "-s",
         dest="prepare_script",
-        required=True,
-        default=pathlib.Path().cwd().joinpath("prepare"),
+        required=False,
+        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, "prepare"),
         help="Full path to the extracted prepare script.",
         metavar="PREPARE_SCRIPT",
         type=pathlib.Path,
@@ -971,7 +977,7 @@ def parse_args(args):
         "-f",
         dest="outfile",
         required=False,
-        default=HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name),
+        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, SYSTEMD_UNIT.name),
         help="Where to save the intermediate unit file. "
              "It will get copied to the final destination "
              "upon command completion.",

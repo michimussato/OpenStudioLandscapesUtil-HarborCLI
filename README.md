@@ -4,6 +4,10 @@
     * [venv](#venv)
   * [Installation](#installation)
   * [Usage](#usage)
+    * [Prepare](#prepare)
+    * [Systemd](#systemd)
+      * [Install](#install)
+      * [Uninstall](#uninstall)
   * [Tagging](#tagging)
     * [Release Candidate](#release-candidate)
     * [Main Release](#main-release)
@@ -15,6 +19,10 @@
 
 The `openstudiolandscapesutil-harborcli` facilitates getting Harbor up and running for
 [OpenStudioLandscapes](https://github.com/michimussato/OpenStudioLandscapes).
+
+`openstudiolandscapesutil-harborcli` is not really intended to be used manually.
+It's supposed to be embedded and used by `OpenStudioLandscapes` and it therefore
+is therefor feature poor. 
 
 This package was created using PyScaffold:
 
@@ -41,22 +49,63 @@ source .venv/bin/activate
 
 ```
 $ openstudiolandscapesutil-harborcli --help
-Usage: openstudiolandscapesutil-harborcli [OPTIONS] COMMAND [ARGS]...
+usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv]
+                                       {prepare,systemd} ...
 
-  A Harbor CLI entrypoint.
+A tool to facilitate Harbor setup and getting it up and running using systemd.
 
-Options:
-  -v, --verbosity TEXT  Set verbosity of output: CRITICAL, FATAL, ERROR, WARN,
-                        WARNING, INFO, DEBUG, NOTSET
-  --help                Show this message and exit.
+positional arguments:
+  {prepare,systemd}
 
-Commands:
-  configure          Step 3
-  download           Step 1
-  extract            Step 2
-  prepare            Step 4
-  systemd-install    Step 5
-  systemd-uninstall
+options:
+  -h, --help           show this help message and exit
+  --version            show program's version number and exit
+  -v, --verbose        set loglevel to INFO (default: None)
+  -vv, --very-verbose  set loglevel to DEBUG (default: None)
+```
+
+### Prepare
+
+`cwd` matters.
+
+```shell
+cd ~/git/repos/OpenStudioLandscapes/.harbor
+```
+
+```shell
+openstudiolandscapesutil-harborcli prepare download
+```
+
+```shell
+openstudiolandscapesutil-harborcli prepare extract --tar-file ./download/harbor-*.tgz
+```
+
+```shell
+openstudiolandscapesutil-harborcli prepare configure
+```
+
+```shell
+openstudiolandscapesutil-harborcli prepare install
+```
+
+### Systemd
+
+```shell
+cd ~/git/repos/OpenStudioLandscapes/.harbor
+```
+
+#### Install
+
+`cwd` matters.
+
+```shell
+openstudiolandscapesutil-harborcli systemd install --enable --start
+```
+
+#### Uninstall
+
+```shell
+openstudiolandscapesutil-harborcli systemd uninstall
 ```
 
 ## Tagging
