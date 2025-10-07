@@ -19,6 +19,7 @@ References:
     - https://setuptools.pypa.io/en/latest/userguide/entry_point.html
     - https://pip.pypa.io/en/stable/reference/pip_install
 """
+import argparse
 import configparser
 import os
 import pathlib
@@ -29,7 +30,6 @@ import typing
 from subprocess import CompletedProcess
 from typing import Union, Any
 
-import click
 import requests
 import logging
 import sys
@@ -144,53 +144,64 @@ DOCKER_PROGRESS = [
 ]
 
 
-# CLI
-
-@click.group()
-@click.option(
-    "--verbosity",
-    "-v",
-    is_flag=False,
-    default="INFO",
-    help=f"Set verbosity of output: {', '.join(logging.getLevelNamesMapping().keys())}",
-)
-def run(verbosity):
-    """A Harbor CLI entrypoint."""
-
-    level = logging.getLevelName(verbosity)
-
-    if verbosity not in logging.getLevelNamesMapping().keys():
-        raise ValueError("Invalid verbosity level: {}".format(verbosity))
-
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
-    logging.basicConfig(
-        level=level, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
-    )
-
-    _logger.debug(logging.getLevelName(_logger.getEffectiveLevel()))
-
-    _logger.info("Logging setup complete")
+class HarborCLIError(Exception):
+    pass
 
 
-@run.command()
-@click.option(
-    "--url",
-    type=click.STRING,
-    default=HARBOR_URL,
-    show_default=True,
-    help="URL of the Harbor installer",
-    required=True,
-    prompt=True,
-)
-@click.option(
-    "--destination-folder",
-    type=pathlib.Path,
-    default=HARBOR_DOWNLOAD_DIR,
-    show_default=True,
-    help="URL of the Harbor installer",
-    required=True,
-    prompt=True,
-)
+# ---- Python API ----
+# The functions defined in this section can be imported by users in their
+# Python scripts/interactive interpreter, e.g. via
+# `from OpenStudioLandscapesUtil.Harbor_CLI.harbor_cli import fib`,
+# when using this Python module as a library.
+
+
+# # CLI
+#
+# @click.group()
+# @click.option(
+#     "--verbosity",
+#     "-v",
+#     is_flag=False,
+#     default="INFO",
+#     help=f"Set verbosity of output: {', '.join(logging.getLevelNamesMapping().keys())}",
+# )
+# def run(verbosity):
+#     """A Harbor CLI entrypoint."""
+#
+#     level = logging.getLevelName(verbosity)
+#
+#     if verbosity not in logging.getLevelNamesMapping().keys():
+#         raise ValueError("Invalid verbosity level: {}".format(verbosity))
+#
+#     logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+#     logging.basicConfig(
+#         level=level, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
+#     )
+#
+#     _logger.debug(logging.getLevelName(_logger.getEffectiveLevel()))
+#
+#     _logger.info("Logging setup complete")
+
+
+# @run.command()
+# @click.option(
+#     "--url",
+#     type=click.STRING,
+#     default=HARBOR_URL,
+#     show_default=True,
+#     help="URL of the Harbor installer",
+#     required=True,
+#     prompt=True,
+# )
+# @click.option(
+#     "--destination-folder",
+#     type=pathlib.Path,
+#     default=HARBOR_DOWNLOAD_DIR,
+#     show_default=True,
+#     help="URL of the Harbor installer",
+#     required=True,
+#     prompt=True,
+# )
 def download(
         url: str,
         destination_folder: pathlib.Path,
@@ -228,25 +239,25 @@ def download(
         )
 
 
-@run.command()
-@click.option(
-    "--extract-to",
-    type=pathlib.Path,
-    default=HARBOR_BIN_DIR,
-    show_default=True,
-    help="Full Path of the destination folder",
-    required=True,
-    prompt=True,
-)
-@click.option(
-    "--tar-file",
-    type=pathlib.Path,
-    default=HARBOR_DOWNLOAD_DIR.joinpath("harbor-online-installer-v2.12.2.tgz"),
-    show_default=True,
-    help="Full Path to the Harbor TAR installer.",
-    required=True,
-    prompt=True,
-)
+# @run.command()
+# @click.option(
+#     "--extract-to",
+#     type=pathlib.Path,
+#     default=HARBOR_BIN_DIR,
+#     show_default=True,
+#     help="Full Path of the destination folder",
+#     required=True,
+#     prompt=True,
+# )
+# @click.option(
+#     "--tar-file",
+#     type=pathlib.Path,
+#     default=HARBOR_DOWNLOAD_DIR.joinpath("harbor-online-installer-v2.12.2.tgz"),
+#     show_default=True,
+#     help="Full Path to the Harbor TAR installer.",
+#     required=True,
+#     prompt=True,
+# )
 def extract(
         extract_to: pathlib.Path,
         tar_file: pathlib.Path,
@@ -286,16 +297,16 @@ def _configure() -> str:
     return harbor_yml
 
 
-@run.command()
-@click.option(
-    "--out-dir",
-    type=pathlib.Path,
-    default=HARBOR_CONFIG_ROOT,
-    show_default=True,
-    help="Full Path where the harbor.yml will be saved.",
-    required=True,
-    prompt=True,
-)
+# @run.command()
+# @click.option(
+#     "--out-dir",
+#     type=pathlib.Path,
+#     default=HARBOR_CONFIG_ROOT,
+#     show_default=True,
+#     help="Full Path where the harbor.yml will be saved.",
+#     required=True,
+#     prompt=True,
+# )
 def configure(
         out_dir: pathlib.Path,
 ) -> Union[pathlib.Path, Exception]:
@@ -314,16 +325,16 @@ def configure(
     return harbor_yml
 
 
-@run.command()
-@click.option(
-    "--prepare-script",
-    type=pathlib.Path,
-    default=HARBOR_PREPARE,
-    show_default=True,
-    help="Full Path to the Harbor prepare script.",
-    required=True,
-    prompt=True,
-)
+# @run.command()
+# @click.option(
+#     "--prepare-script",
+#     type=pathlib.Path,
+#     default=HARBOR_PREPARE,
+#     show_default=True,
+#     help="Full Path to the Harbor prepare script.",
+#     required=True,
+#     prompt=True,
+# )
 def prepare(
         prepare_script: pathlib.Path,
 ) -> CompletedProcess[bytes]:
@@ -389,29 +400,29 @@ def _systemd_unit_dict(
     return unit_dict
 
 
-@run.command()
+# @run.command()
+# # @click.option(
+# #     "--install",
+# #     is_flag=True,
+# #     # type=pathlib.Path,
+# #     # default=HARBOR_PREPARE,
+# #     # show_default=True,
+# #     help="Install systemd unit.",
+# #     required=True,
+# #     # prompt=True,
+# # )
 # @click.option(
-#     "--install",
+#     "--enable",
 #     is_flag=True,
-#     # type=pathlib.Path,
-#     # default=HARBOR_PREPARE,
-#     # show_default=True,
-#     help="Install systemd unit.",
-#     required=True,
-#     # prompt=True,
+#     help="Enable systemd unit.",
+#     required=False,
 # )
-@click.option(
-    "--enable",
-    is_flag=True,
-    help="Enable systemd unit.",
-    required=False,
-)
-@click.option(
-    "--start",
-    is_flag=True,
-    help="Start systemd unit.",
-    required=False,
-)
+# @click.option(
+#     "--start",
+#     is_flag=True,
+#     help="Start systemd unit.",
+#     required=False,
+# )
 def systemd_install(
         enable: bool,
         start: bool,
@@ -557,35 +568,35 @@ def systemd_install(
     return cmd
 
 
-@run.command()
+# @run.command()
+# # @click.option(
+# #     "--install",
+# #     is_flag=True,
+# #     # type=pathlib.Path,
+# #     # default=HARBOR_PREPARE,
+# #     # show_default=True,
+# #     help="Install systemd unit.",
+# #     required=True,
+# #     # prompt=True,
+# # )
 # @click.option(
-#     "--install",
+#     "--disable",
 #     is_flag=True,
-#     # type=pathlib.Path,
-#     # default=HARBOR_PREPARE,
-#     # show_default=True,
-#     help="Install systemd unit.",
-#     required=True,
-#     # prompt=True,
+#     help="Disable systemd unit.",
+#     required=False,
 # )
-@click.option(
-    "--disable",
-    is_flag=True,
-    help="Disable systemd unit.",
-    required=False,
-)
-@click.option(
-    "--stop",
-    is_flag=True,
-    help="Stop systemd unit.",
-    required=True,
-)
-@click.option(
-    "--remove",
-    is_flag=True,
-    help="Remove systemd unit.",
-    required=False,
-)
+# @click.option(
+#     "--stop",
+#     is_flag=True,
+#     help="Stop systemd unit.",
+#     required=True,
+# )
+# @click.option(
+#     "--remove",
+#     is_flag=True,
+#     help="Remove systemd unit.",
+#     required=False,
+# )
 def systemd_uninstall(
         disable: bool,
         stop: bool,
@@ -676,6 +687,139 @@ def systemd_uninstall(
     _logger.info(f"\n{' '.join(sudo_bash_c)} \"{' '.join(uninstall_service)}\"")
 
     return cmd
+
+
+# ---- CLI ----
+# The functions defined in this section are wrappers around the main Python
+# API allowing them to be called directly from the terminal as a CLI
+# executable/script.
+
+
+def parse_args(args):
+    """Parse command line parameters
+
+    Args:
+      args (List[str]): command line parameters as list of strings
+          (for example  ``["--help"]``).
+
+    Returns:
+      :obj:`argparse.Namespace`: command line parameters namespace
+    """
+    base_parser = argparse.ArgumentParser(description="A tool to generate a README.md")
+    base_subparsers = base_parser.add_subparsers()
+    base_parser.add_argument(
+        "--version",
+        action="version",
+        version=f"OpenStudioLandscapesUtil-ReadmeGenerator {__version__}",
+    )
+    # parser.add_argument(dest="n", help="n-th Fibonacci number", type=int, metavar="INT")
+    base_parser.add_argument(
+        "-v",
+        "--verbose",
+        dest="loglevel",
+        help="set loglevel to INFO",
+        action="store_const",
+        # action="count",
+        # https://stackoverflow.com/questions/6076690/verbose-level-with-argparse-and-multiple-v-options
+        const=logging.INFO,
+    )
+    base_parser.add_argument(
+        "-vv",
+        "--very-verbose",
+        dest="loglevel",
+        help="set loglevel to DEBUG",
+        action="store_const",
+        const=logging.DEBUG,
+    )
+
+    # parser_prepare = argparse.ArgumentParser(
+    #     # prog="Prepare",
+    #     parents=[base_parser],
+    #     add_help=False,
+    # )
+    # parser_setup = argparse.ArgumentParser(add_help=False)
+    # parser_systemd = argparse.ArgumentParser(add_help=False)
+
+    # PREPARE
+
+    subparser_prepare = base_subparsers.add_parser(
+        name="prepare",
+        parents=[base_parser],
+        add_help=False,
+    )
+
+    prepare_subparsers = subparser_prepare.add_subparsers()
+
+    ## DOWNLOAD
+
+    subparser_download = prepare_subparsers.add_parser(
+        name="download",
+        parents=[subparser_prepare],
+        add_help=False,
+    )
+
+
+
+    subparser_download.add_argument(
+        "--url",
+        "-u",
+        dest="url",
+        required=True,
+        default=HARBOR_URL,
+        help="URL of the Harbor Installer TAR. "
+             "For more info, see: "
+             "https://github.com/goharbor/harbor/releases",
+        metavar="URL",
+        type=str,
+    )
+
+
+
+    return base_parser.parse_args(args)
+
+
+def setup_logging(
+        args: argparse.Namespace,
+):
+    """Setup basic logging
+
+    Args:
+      args (argparse.Namespace): minimum loglevel for emitting messages
+    """
+    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
+    logging.basicConfig(
+        level=args.loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
+    )
+
+    _logger.debug("Logging setup complete")
+    _logger.debug(f"Logging Level: {logging.getLevelName(_logger.getEffectiveLevel())}")
+
+    _logger.debug("args: %s", args)
+
+
+def main(args):
+    """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
+
+    Instead of returning the value from :func:`fib`, it prints the result to the
+    ``stdout`` in a nicely formatted message.
+
+    Args:
+      args (List[str]): command line parameters as list of strings
+          (for example  ``["--verbose", "42"]``).
+    """
+    args: argparse.Namespace = parse_args(args)
+    setup_logging(args)
+    # _logger.debug("Starting crazy calculations...")
+    pass
+    # _logger.info("Script ends here")
+
+
+def run():
+    """Calls :func:`main` passing the CLI arguments extracted from :obj:`sys.argv`
+
+    This function can be used as entry point to create console scripts with setuptools.
+    """
+    main(sys.argv[1:])
 
 
 if __name__ == "__main__":
