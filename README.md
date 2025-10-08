@@ -25,7 +25,7 @@ The `openstudiolandscapesutil-harborcli` facilitates getting Harbor up and runni
 
 `openstudiolandscapesutil-harborcli` is not really intended to be used manually.
 It's supposed to be embedded and used by `OpenStudioLandscapes` and it therefore
-is therefor feature poor. 
+is feature poor. 
 
 This package was created using PyScaffold:
 
