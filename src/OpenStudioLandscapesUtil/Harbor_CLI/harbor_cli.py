@@ -23,7 +23,7 @@ import argparse
 import base64
 import configparser
 import enum
-import json
+from dotenv import load_dotenv
 import os
 import pathlib
 import shutil
@@ -31,7 +31,7 @@ import subprocess
 import tarfile
 import typing
 from subprocess import CompletedProcess
-from typing import Union, Any, Callable, Dict
+from typing import Union, Any, Dict
 
 import requests
 import logging
@@ -39,7 +39,15 @@ import sys
 
 import yaml
 from OpenStudioLandscapesUtil.Harbor_CLI import __version__
-# from OpenStudioLandscapes.engine.resources.harbor.resources import HarborResource
+
+
+dotenv: pathlib.Path = pathlib.Path(__file__).parent.parent.parent.parent.joinpath(".env")
+
+load_dotenv(
+    dotenv_path=dotenv,
+    verbose=True,
+)
+
 
 __author__ = "Michael Mussato"
 __copyright__ = "Michael Mussato"
