@@ -166,25 +166,25 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 #### Create
 
 ```shell
-openstudiolandscapesutil-harborcli project create
+openstudiolandscapesutil-harborcli project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli project create)
+eval $(openstudiolandscapesutil-harborcli project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80)
 ```
 
 #### Delete
 
 ```shell
-openstudiolandscapesutil-harborcli project delete
+openstudiolandscapesutil-harborcli project delete --project-name library --host 127.0.0.1 --port 80
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli project delete)
+eval $(openstudiolandscapesutil-harborcli project delete --project-name library --host 127.0.0.1 --port 80)
 ```
 
 ## Tagging
