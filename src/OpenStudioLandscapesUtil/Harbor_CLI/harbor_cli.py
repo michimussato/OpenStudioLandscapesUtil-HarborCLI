@@ -690,6 +690,90 @@ def systemd_journalctl() -> list[str | Any]:
     return cmd
 
 
+def project_create(
+        project_name: str,
+) -> list[str | Any]:
+
+    raise NotImplementedError
+
+    # journalctl_fu = [
+    #     shutil.which("journalctl"),
+    #     "--follow",
+    #     "--unit",
+    #     SYSTEMD_UNIT.name,
+    # ]
+    #
+    # _logger.debug(f"{journalctl_fu = }")
+    #
+    # sudo_bash_c = [
+    #     # *SU_METHOD,
+    #     *SHELL,
+    # ]
+    #
+    # cmd = [
+    #     *sudo_bash_c,
+    #     " ".join(journalctl_fu)
+    # ]
+    #
+    # # _logger.debug(f"{cmd = }")
+    #
+    # # proc = subprocess.run(
+    # #     [
+    # #         *sudo_bash_c,
+    # #         " ".join(install_service)
+    # #     ],
+    # #     shell=True,
+    # #     check=True,
+    # # )
+    #
+    # _logger.info("Execute the following command manually:")
+    # print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
+    #
+    # return cmd
+
+
+def project_delete(
+        project_name: str,
+) -> list[str | Any]:
+
+    raise NotImplementedError
+
+    # journalctl_fu = [
+    #     shutil.which("journalctl"),
+    #     "--follow",
+    #     "--unit",
+    #     SYSTEMD_UNIT.name,
+    # ]
+    #
+    # _logger.debug(f"{journalctl_fu = }")
+    #
+    # sudo_bash_c = [
+    #     # *SU_METHOD,
+    #     *SHELL,
+    # ]
+    #
+    # cmd = [
+    #     *sudo_bash_c,
+    #     " ".join(journalctl_fu)
+    # ]
+    #
+    # # _logger.debug(f"{cmd = }")
+    #
+    # # proc = subprocess.run(
+    # #     [
+    # #         *sudo_bash_c,
+    # #         " ".join(install_service)
+    # #     ],
+    # #     shell=True,
+    # #     check=True,
+    # # )
+    #
+    # _logger.info("Execute the following command manually:")
+    # print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
+    #
+    # return cmd
+
+
 # ---- CLI ----
 # The functions defined in this section are wrappers around the main Python
 # API allowing them to be called directly from the terminal as a CLI
@@ -752,6 +836,19 @@ def eval_(
 
         elif args.systemd_command == "journalctl":
             result: list = _cli_systemd_journalctl()
+            _logger.debug(f"{result = }")
+            return result
+
+    elif args.command == "project":
+        _logger.debug(f"{args.systemd_command = }")
+
+        if args.systemd_command == "create":
+            result: list = _cli_project_create(args)
+            _logger.debug(f"{result = }")
+            return result
+
+        if args.systemd_command == "delete":
+            result: list = _cli_project_delete(args)
             _logger.debug(f"{result = }")
             return result
 
@@ -839,6 +936,28 @@ def _cli_systemd_status() -> list:
 def _cli_systemd_journalctl() -> list:
 
     result: list = systemd_journalctl()
+
+    return result
+
+
+def _cli_project_create(
+        args: argparse.Namespace,
+) -> list:
+
+    result: list = project_create(
+        project_name=args.project_name,
+    )
+
+    return result
+
+
+def _cli_project_delete(
+        args: argparse.Namespace,
+) -> list:
+
+    result: list = project_deleted(
+        project_name=args.project_name,
+    )
 
     return result
 
@@ -1155,6 +1274,58 @@ def parse_args(args):
         name="journalctl",
         formatter_class=_formatter,
         help="Follow logs.",
+    )
+
+    ####################################################################################################################
+    # PROJECT
+
+    base_subparser_systemd = base_subparsers.add_parser(
+        name="project",
+        formatter_class=_formatter,
+    )
+
+    project_subparsers = base_subparser_systemd.add_subparsers(
+        dest="project_command",
+        help="A simple interface to set up the basic "
+             "project structure in Harbor."
+    )
+
+    ## CREATE
+
+    subparser_project_create = project_subparsers.add_parser(
+        name="create",
+        formatter_class=_formatter,
+        help="Create project.",
+    )
+
+    subparser_project_create.add_argument(
+        "--project-name",
+        "-p",
+        dest="project_name",
+        required=False,
+        default="openstudiolandscapes",
+        help="The name of the project to be created.",
+        metavar="PROJECT_NAME",
+        type=str,
+    )
+
+    ## DELETE
+
+    subparser_project_delete = project_subparsers.add_parser(
+        name="delete",
+        formatter_class=_formatter,
+        help="Delete project.",
+    )
+
+    subparser_project_delete.add_argument(
+        "--project-name",
+        "-p",
+        dest="project_name",
+        required=False,
+        default="library",
+        help="The name of the project to be deleted.",
+        metavar="PROJECT_NAME",
+        type=str,
     )
 
     return main_parser.parse_args()

@@ -11,6 +11,9 @@
         * [Stop/Disable](#stopdisable)
       * [Status](#status)
       * [Journalctl](#journalctl)
+    * [Project](#project)
+      * [Create](#create)
+      * [Delete](#delete)
   * [Tagging](#tagging)
     * [Release Candidate](#release-candidate)
     * [Main Release](#main-release)
@@ -52,19 +55,18 @@ source .venv/bin/activate
 
 ```
 $ openstudiolandscapesutil-harborcli --help
-usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv]
-                                       {prepare,systemd} ...
+usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] {prepare,systemd,project} ...
 
 A tool to facilitate Harbor setup and getting it up and running using systemd.
 
 positional arguments:
-  {prepare,systemd}
+  {prepare,systemd,project}
 
 options:
-  -h, --help           show this help message and exit
-  --version            show program's version number and exit
-  -v, --verbose        set loglevel to INFO (default: None)
-  -vv, --very-verbose  set loglevel to DEBUG (default: None)
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  -v, --verbose         set loglevel to INFO (default: None)
+  -vv, --very-verbose   set loglevel to DEBUG (default: None)
 ```
 
 ### Prepare
@@ -151,6 +153,38 @@ To directly execute the returned command:
 
 ```shell
 eval $(openstudiolandscapesutil-harborcli systemd journalctl)
+```
+
+### Project
+
+`cwd` matters.
+
+```shell
+cd ~/git/repos/OpenStudioLandscapes/.harbor
+```
+
+#### Create
+
+```shell
+openstudiolandscapesutil-harborcli project create
+```
+
+To directly execute the returned command:
+
+```shell
+eval $(openstudiolandscapesutil-harborcli project create)
+```
+
+#### Delete
+
+```shell
+openstudiolandscapesutil-harborcli project delete
+```
+
+To directly execute the returned command:
+
+```shell
+eval $(openstudiolandscapesutil-harborcli project delete)
 ```
 
 ## Tagging
