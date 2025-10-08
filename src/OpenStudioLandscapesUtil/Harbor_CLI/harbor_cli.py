@@ -20,7 +20,10 @@ References:
     - https://pip.pypa.io/en/stable/reference/pip_install
 """
 import argparse
+import base64
 import configparser
+import enum
+import json
 import os
 import pathlib
 import shutil
@@ -28,7 +31,7 @@ import subprocess
 import tarfile
 import typing
 from subprocess import CompletedProcess
-from typing import Union, Any, Callable
+from typing import Union, Any, Callable, Dict
 
 import requests
 import logging
@@ -36,6 +39,7 @@ import sys
 
 import yaml
 from OpenStudioLandscapesUtil.Harbor_CLI import __version__
+# from OpenStudioLandscapes.engine.resources.harbor.resources import HarborResource
 
 __author__ = "Michael Mussato"
 __copyright__ = "Michael Mussato"
@@ -82,7 +86,10 @@ HARBOR_PREPARE: pathlib.Path = HARBOR_BIN_DIR.joinpath(_HARBOR_PREPARE)
 OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = os.environ.get("OPENSTUDIOLANDSCAPES__DOMAIN_LAN" ,"farm.evil")
 OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = "harbor.{OPENSTUDIOLANDSCAPES__DOMAIN_LAN}".format(OPENSTUDIOLANDSCAPES__DOMAIN_LAN=OPENSTUDIOLANDSCAPES__DOMAIN_LAN)
 OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", 80))
+OPENSTUDIOLANDSCAPES__HARBOR_ADMIN: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ADMIN", "admin")
 OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD", "Harbor12345")
+
+OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = "http://{host}:{port}/api/v2.0"
 
 HARBOR_CONFIG_DICT: dict = {
     "hostname": OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
@@ -148,6 +155,14 @@ DOCKER_PROGRESS = [
 ]
 
 
+class RequestMethod(enum.StrEnum):
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    HEAD = "HEAD"
+
+
 class HarborCLIError(Exception):
     pass
 
@@ -157,6 +172,41 @@ class HarborCLIError(Exception):
 # Python scripts/interactive interpreter, e.g. via
 # `from OpenStudioLandscapesUtil.Harbor_CLI.harbor_cli import fib`,
 # when using this Python module as a library.
+
+
+def auth_tokenized() -> str:
+    return f"{base64.b64encode(str(':'.join([OPENSTUDIOLANDSCAPES__HARBOR_ADMIN, OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD])).encode('utf-8')).decode('ascii')}"
+
+
+def curlify(
+        request: requests.PreparedRequest,
+) -> list[str]:
+    cmd = [
+        shutil.which("curl"),
+        "-X",
+        request.method,
+    ]
+
+    headers = ['-H "{0}: {1}"'.format(k, v) for k, v in request.headers.items()]
+    cmd.extend(
+        [
+            *headers,
+        ]
+    )
+
+    if request.body is not None:
+        data = request.body.decode("utf-8")
+        cmd.extend(
+            [
+                "-d",
+                f"'{data}'",
+            ]
+        )
+
+    uri = request.url
+    cmd.append(f"'{uri}'")
+
+    return cmd
 
 
 def download(
@@ -673,8 +723,6 @@ def systemd_journalctl() -> list[str | Any]:
         " ".join(journalctl_fu)
     ]
 
-    # _logger.debug(f"{cmd = }")
-
     # proc = subprocess.run(
     #     [
     #         *sudo_bash_c,
@@ -692,86 +740,129 @@ def systemd_journalctl() -> list[str | Any]:
 
 def project_create(
         project_name: str,
+        host: str,
+        port: int,
 ) -> list[str | Any]:
 
-    raise NotImplementedError
+    def project_create_request_dict(project_name_) -> Dict:
+        _project_create_dict: dict = {
+            "endpoint": f"{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT.format(host=host, port=port)}/projects",
+            "method": RequestMethod.POST.value,
+            "headers": {
+                "accept": "application/json",
+                "authorization": f"Basic {auth_tokenized()}",
+                "X-Resource-Name-In-Location": "false",
+                "Content-Type": "application/json",
+            },
+            "payload": {
+                # json encoding happens automatically.
+                # no need to wrap this dict in json.dumps()
+                # https://stackoverflow.com/questions/25242262/dump-to-json-adds-additional-double-quotes-and-escaping-of-quotes
+                "json": {
+                    "project_name": project_name_,
+                    "public": True,
+                },
+            }
+        }
+        return _project_create_dict
 
-    # journalctl_fu = [
-    #     shutil.which("journalctl"),
-    #     "--follow",
-    #     "--unit",
-    #     SYSTEMD_UNIT.name,
-    # ]
-    #
-    # _logger.debug(f"{journalctl_fu = }")
-    #
+    def project_create_request_prepared(
+            request_dict: Dict,
+    ) -> requests.PreparedRequest:
+
+        payload = request_dict["payload"]
+
+        _logger.debug(f"{payload = }")
+
+        request: requests.Request = requests.Request(
+            method=request_dict["method"],
+            url=request_dict["endpoint"],
+            headers=request_dict["headers"],
+            **payload,
+        )
+
+        return request.prepare()
+
+    prepared_request = project_create_request_prepared(
+        request_dict=project_create_request_dict(
+            project_name_=project_name
+        ),
+    )
+
     # sudo_bash_c = [
-    #     # *SU_METHOD,
+    #     # *_SU_METHODS[su_method],
     #     *SHELL,
     # ]
-    #
-    # cmd = [
-    #     *sudo_bash_c,
-    #     " ".join(journalctl_fu)
-    # ]
-    #
-    # # _logger.debug(f"{cmd = }")
-    #
-    # # proc = subprocess.run(
-    # #     [
-    # #         *sudo_bash_c,
-    # #         " ".join(install_service)
-    # #     ],
-    # #     shell=True,
-    # #     check=True,
-    # # )
-    #
-    # _logger.info("Execute the following command manually:")
-    # print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
-    #
-    # return cmd
+
+    cmd: list = curlify(prepared_request)
+
+    _logger.info("Execute the following command manually:")
+    print(f"{' '.join(cmd)}")
+
+    return cmd
 
 
 def project_delete(
         project_name: str,
+        host: str,
+        port: int,
 ) -> list[str | Any]:
 
-    raise NotImplementedError
+    def project_delete_request_dict(project_name_) -> Dict:
+        _project_delete_dict: dict = {
+            "endpoint": f"{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT.format(host=host, port=port)}/projects/{project_name_}",
+            "method": RequestMethod.DELETE.value,
+            "headers": {
+                "accept": "application/json",
+                "X-Is-Resource-Name": "false",
+                "authorization": f"Basic {auth_tokenized()}",
+            },
+            "payload": {
+                # # json encoding happens automatically.
+                # # no need to wrap this dict in json.dumps()
+                # # https://stackoverflow.com/questions/25242262/dump-to-json-adds-additional-double-quotes-and-escaping-of-quotes
+                # "json": {
+                #     "project_name": project_name_,
+                #     "public": True,
+                # },
+            }
+        }
+        return _project_delete_dict
 
-    # journalctl_fu = [
-    #     shutil.which("journalctl"),
-    #     "--follow",
-    #     "--unit",
-    #     SYSTEMD_UNIT.name,
-    # ]
-    #
-    # _logger.debug(f"{journalctl_fu = }")
-    #
+    def project_delete_request_prepared(
+            request_dict: Dict,
+    ) -> requests.PreparedRequest:
+
+        # payload = request_dict["payload"]
+        #
+        # _logger.debug(f"{payload = }")
+
+        request: requests.Request = requests.Request(
+            method=request_dict["method"],
+            url=request_dict["endpoint"],
+            headers=request_dict["headers"],
+            # **payload,
+        )
+
+        return request.prepare()
+
+    prepared_request = project_delete_request_prepared(
+        request_dict=project_delete_request_dict(
+            project_name_=project_name
+        ),
+    )
+
     # sudo_bash_c = [
-    #     # *SU_METHOD,
+    #     # *_SU_METHODS[su_method],
     #     *SHELL,
     # ]
-    #
-    # cmd = [
-    #     *sudo_bash_c,
-    #     " ".join(journalctl_fu)
-    # ]
-    #
-    # # _logger.debug(f"{cmd = }")
-    #
-    # # proc = subprocess.run(
-    # #     [
-    # #         *sudo_bash_c,
-    # #         " ".join(install_service)
-    # #     ],
-    # #     shell=True,
-    # #     check=True,
-    # # )
-    #
-    # _logger.info("Execute the following command manually:")
-    # print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
-    #
-    # return cmd
+
+    cmd: list = curlify(prepared_request)
+
+    _logger.info("Execute the following command manually:")
+    print(f"{' '.join(cmd)}")
+
+    return cmd
 
 
 # ---- CLI ----
@@ -840,14 +931,14 @@ def eval_(
             return result
 
     elif args.command == "project":
-        _logger.debug(f"{args.systemd_command = }")
+        _logger.debug(f"{args.project_command = }")
 
-        if args.systemd_command == "create":
+        if args.project_command == "create":
             result: list = _cli_project_create(args)
             _logger.debug(f"{result = }")
             return result
 
-        if args.systemd_command == "delete":
+        if args.project_command == "delete":
             result: list = _cli_project_delete(args)
             _logger.debug(f"{result = }")
             return result
@@ -946,6 +1037,8 @@ def _cli_project_create(
 
     result: list = project_create(
         project_name=args.project_name,
+        host=args.host,
+        port=args.port,
     )
 
     return result
@@ -955,8 +1048,10 @@ def _cli_project_delete(
         args: argparse.Namespace,
 ) -> list:
 
-    result: list = project_deleted(
+    result: list = project_delete(
         project_name=args.project_name,
+        host=args.host,
+        port=args.port,
     )
 
     return result
@@ -1302,11 +1397,33 @@ def parse_args(args):
         "--project-name",
         "-p",
         dest="project_name",
-        required=False,
+        required=True,
         default="openstudiolandscapes",
         help="The name of the project to be created.",
         metavar="PROJECT_NAME",
         type=str,
+    )
+
+    subparser_project_create.add_argument(
+        "--host",
+        # "-h",
+        dest="host",
+        required=False,
+        default=OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
+        help="The host where Harbor is running.",
+        metavar="HOST",
+        type=str,
+    )
+
+    subparser_project_create.add_argument(
+        "--port",
+        # "-p",
+        dest="port",
+        required=False,
+        default=OPENSTUDIOLANDSCAPES__HARBOR_PORT,
+        help="The port where Harbor is listening.",
+        metavar="PORT",
+        type=int,
     )
 
     ## DELETE
@@ -1321,11 +1438,33 @@ def parse_args(args):
         "--project-name",
         "-p",
         dest="project_name",
-        required=False,
+        required=True,
         default="library",
         help="The name of the project to be deleted.",
         metavar="PROJECT_NAME",
         type=str,
+    )
+
+    subparser_project_delete.add_argument(
+        "--host",
+        # "-h",
+        dest="host",
+        required=False,
+        default=OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
+        help="The host where Harbor is running.",
+        metavar="HOST",
+        type=str,
+    )
+
+    subparser_project_delete.add_argument(
+        "--port",
+        # "-p",
+        dest="port",
+        required=False,
+        default=OPENSTUDIOLANDSCAPES__HARBOR_PORT,
+        help="The port where Harbor is listening.",
+        metavar="PORT",
+        type=int,
     )
 
     return main_parser.parse_args()
