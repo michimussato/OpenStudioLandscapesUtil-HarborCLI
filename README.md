@@ -120,6 +120,36 @@ To directly execute the returned command:
 eval $(openstudiolandscapesutil-harborcli systemd uninstall)
 ```
 
+##### Stop/Disable
+
+To just `stop` and/or `disable`, use the normal `systemctl` commands
+- `systemctl stop harbor.service`
+- `systemctl disable harbor.service`
+
+#### Status
+
+```shell
+openstudiolandscapesutil-harborcli systemd status
+```
+
+To directly execute the returned command:
+
+```shell
+eval $(openstudiolandscapesutil-harborcli systemd status)
+```
+
+#### Journalctl
+
+```shell
+openstudiolandscapesutil-harborcli systemd journalctl
+```
+
+To directly execute the returned command:
+
+```shell
+eval $(openstudiolandscapesutil-harborcli systemd journalctl)
+```
+
 ## Tagging
 
 ### Release Candidate

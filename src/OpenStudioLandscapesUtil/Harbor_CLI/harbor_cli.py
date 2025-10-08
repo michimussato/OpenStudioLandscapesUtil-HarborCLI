@@ -397,6 +397,7 @@ def _systemd_unit_dict(
 
 
 def systemd_install(
+        su_method: str,
         enable: bool,
         start: bool,
         # install: bool,
@@ -518,7 +519,7 @@ def systemd_install(
     _logger.debug(f"{install_service = }")
 
     sudo_bash_c = [
-        *SU_METHOD,
+        *_SU_METHODS[su_method],
         *SHELL,
     ]
 
@@ -545,6 +546,7 @@ def systemd_install(
 
 
 def systemd_uninstall(
+        su_method: str,
         disable: bool = True,
         stop: bool = True,
         remove: bool = True,
@@ -586,7 +588,7 @@ def systemd_uninstall(
     _logger.debug(f"{uninstall_service = }")
 
     sudo_bash_c = [
-        *SU_METHOD,
+        *_SU_METHODS[su_method],
         *SHELL,
     ]
 
@@ -608,6 +610,82 @@ def systemd_uninstall(
 
     _logger.info("Execute the following command manually:")
     print(f"{' '.join(sudo_bash_c)} \"{' '.join(uninstall_service)}\"")
+
+    return cmd
+
+
+def systemd_status() -> list[str | Any]:
+
+    journalctl_fu = [
+        shutil.which("journalctl"),
+        "--follow",
+        "--unit",
+        SYSTEMD_UNIT.name,
+    ]
+
+    _logger.debug(f"{journalctl_fu = }")
+
+    sudo_bash_c = [
+        # *SU_METHOD,
+        *SHELL,
+    ]
+
+    cmd = [
+        *sudo_bash_c,
+        " ".join(journalctl_fu)
+    ]
+
+    # _logger.debug(f"{cmd = }")
+
+    # proc = subprocess.run(
+    #     [
+    #         *sudo_bash_c,
+    #         " ".join(install_service)
+    #     ],
+    #     shell=True,
+    #     check=True,
+    # )
+
+    _logger.info("Execute the following command manually:")
+    print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
+
+    return cmd
+
+
+def systemd_journalctl() -> list[str | Any]:
+
+    journalctl_fu = [
+        shutil.which("journalctl"),
+        "--follow",
+        "--unit",
+        SYSTEMD_UNIT.name,
+    ]
+
+    _logger.debug(f"{journalctl_fu = }")
+
+    sudo_bash_c = [
+        # *SU_METHOD,
+        *SHELL,
+    ]
+
+    cmd = [
+        *sudo_bash_c,
+        " ".join(journalctl_fu)
+    ]
+
+    # _logger.debug(f"{cmd = }")
+
+    # proc = subprocess.run(
+    #     [
+    #         *sudo_bash_c,
+    #         " ".join(install_service)
+    #     ],
+    #     shell=True,
+    #     check=True,
+    # )
+
+    _logger.info("Execute the following command manually:")
+    print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
 
     return cmd
 
@@ -662,8 +740,18 @@ def eval_(
             _logger.debug(f"{result = }")
             return result
 
-        if args.systemd_command == "uninstall":
-            result: list = _cli_systemd_uninstall()
+        elif args.systemd_command == "uninstall":
+            result: list = _cli_systemd_uninstall(args)
+            _logger.debug(f"{result = }")
+            return result
+
+        elif args.systemd_command == "status":
+            result: list = _cli_systemd_status()
+            _logger.debug(f"{result = }")
+            return result
+
+        elif args.systemd_command == "journalctl":
+            result: list = _cli_systemd_journalctl()
             _logger.debug(f"{result = }")
             return result
 
@@ -721,6 +809,7 @@ def _cli_systemd_install(
 ) -> list:
 
     result: list = systemd_install(
+        su_method=args.su_method,
         enable=args.enable,
         start=args.start,
         outfile=args.outfile,
@@ -729,9 +818,27 @@ def _cli_systemd_install(
     return result
 
 
-def _cli_systemd_uninstall() -> list:
+def _cli_systemd_uninstall(
+        args: argparse.Namespace,
+) -> list:
 
-    result: list = systemd_uninstall()
+    result: list = systemd_uninstall(
+        su_method=args.su_method,
+    )
+
+    return result
+
+
+def _cli_systemd_status() -> list:
+
+    result: list = systemd_status()
+
+    return result
+
+
+def _cli_systemd_journalctl() -> list:
+
+    result: list = systemd_journalctl()
 
     return result
 
@@ -973,6 +1080,17 @@ def parse_args(args):
     )
 
     subparser_install.add_argument(
+        "--su-method",
+        dest="su_method",
+        required=False,
+        choices=_SU_METHODS.keys(),
+        default="pkexec",
+        help=f"Which SU method to use: {list(_SU_METHODS.keys())}.",
+        metavar="SU_METHOD",
+        type=str,
+    )
+
+    subparser_install.add_argument(
         "--outfile",
         "-f",
         dest="outfile",
@@ -1010,6 +1128,33 @@ def parse_args(args):
         name="uninstall",
         formatter_class=_formatter,
         help="Stop, disable and uninstall systemd unit.",
+    )
+
+    subparser_uninstall.add_argument(
+        "--su-method",
+        dest="su_method",
+        required=False,
+        choices=_SU_METHODS.keys(),
+        default="pkexec",
+        help=f"Which SU method to use: {list(_SU_METHODS.keys())}.",
+        metavar="SU_METHOD",
+        type=str,
+    )
+
+    ## STATUS
+
+    subparser_status = systemd_subparsers.add_parser(
+        name="status",
+        formatter_class=_formatter,
+        help="Systemd unit status.",
+    )
+
+    ## JOURNALCTL
+
+    subparser_journalctl = systemd_subparsers.add_parser(
+        name="journalctl",
+        formatter_class=_formatter,
+        help="Follow logs.",
     )
 
     return main_parser.parse_args()
