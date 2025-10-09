@@ -196,22 +196,22 @@ eval $(openstudiolandscapesutil-harborcli project delete --project-name library 
 ### Release Candidate
 
 ```shell
-NEW_TAG=X.X.X-rcX
+export OPENSTUDIOLANDSCAPES_VERSION_TAG=X.X.X-rcX
 ```
 
 ```shell
-git tag --annotate "v${NEW_TAG}" --message "Release Candidate Version v${NEW_TAG}" --force
+git tag --annotate "v${OPENSTUDIOLANDSCAPES_VERSION_TAG}" --message "Release Candidate Version v${OPENSTUDIOLANDSCAPES_VERSION_TAG}" --force
 git push --tags --force
 ```
 
 ### Main Release
 
 ```shell
-NEW_TAG=X.X.X
+export OPENSTUDIOLANDSCAPES_VERSION_TAG=X.X.X
 ```
 
 ```shell
-git tag --annotate "v${NEW_TAG}" --message "Main Release Version v${NEW_TAG}" --force
-git tag --annotate "latest" --message "Latest Release Version (pointing to v${NEW_TAG})" v${NEW_TAG}^{} --force
+git tag --annotate "v${OPENSTUDIOLANDSCAPES_VERSION_TAG}" --message "Main Release Version v${OPENSTUDIOLANDSCAPES_VERSION_TAG}" --force
+git tag --annotate "latest" --message "Latest Release Version (pointing to v${OPENSTUDIOLANDSCAPES_VERSION_TAG})" v${OPENSTUDIOLANDSCAPES_VERSION_TAG}^{} --force
 git push --tags --force
 ```
