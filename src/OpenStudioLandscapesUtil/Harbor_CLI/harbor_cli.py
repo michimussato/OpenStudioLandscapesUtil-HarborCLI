@@ -272,17 +272,12 @@ def extract(
 
 
     if extract_to.exists():
-        # print(list(extract_to.iterdir()))
         if bool(list(extract_to.iterdir())):
-            if len(list(extract_to.iterdir())) == 1 \
-                    and list(extract_to.iterdir())[0].name == ".gitkeep":
-                    pass
-            else:
-                raise HarborCLIError(
-                    f"{extract_to.as_posix()} is not empty. "
-                    f"Aborted. Clear it first if that's "
-                    f"really what you want."
-                )
+            raise HarborCLIError(
+                f"{extract_to.as_posix()} is not empty. "
+                f"Aborted. Clear it first if that's "
+                f"really what you want."
+            )
 
     if not tar_file.exists():
         raise HarborCLIError(
