@@ -673,14 +673,14 @@ def systemd_uninstall(
 
 def systemd_status() -> list[str | Any]:
 
-    journalctl_fu = [
-        shutil.which("journalctl"),
-        "--follow",
-        "--unit",
+    systemctl_status = [
+        shutil.which("systemctl"),
+        "--full",
+        "--no-pager",
         SYSTEMD_UNIT.name,
     ]
 
-    _logger.debug(f"{journalctl_fu = }")
+    _logger.debug(f"{systemctl_status = }")
 
     sudo_bash_c = [
         # *SU_METHOD,
@@ -689,7 +689,7 @@ def systemd_status() -> list[str | Any]:
 
     cmd = [
         *sudo_bash_c,
-        " ".join(journalctl_fu)
+        " ".join(systemctl_status)
     ]
 
     # _logger.debug(f"{cmd = }")
@@ -704,7 +704,7 @@ def systemd_status() -> list[str | Any]:
     # )
 
     _logger.info("Execute the following command manually:")
-    print(f"{' '.join(sudo_bash_c)} \"{' '.join(journalctl_fu)}\"")
+    print(f"{' '.join(sudo_bash_c)} \"{' '.join(systemctl_status)}\"")
 
     return cmd
 
