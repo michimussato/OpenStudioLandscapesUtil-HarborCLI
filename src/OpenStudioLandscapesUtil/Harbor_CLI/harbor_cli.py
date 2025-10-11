@@ -41,14 +41,6 @@ import yaml
 from OpenStudioLandscapesUtil.Harbor_CLI import __version__
 
 
-dotenv: pathlib.Path = pathlib.Path(__file__).parent.parent.parent.parent.joinpath(".env")
-
-load_dotenv(
-    dotenv_path=dotenv,
-    verbose=True,
-)
-
-
 __author__ = "Michael Mussato"
 __copyright__ = "Michael Mussato"
 __license__ = "AGPL-3.0-or-later"
@@ -886,6 +878,18 @@ def eval_(
 
     _logger.debug(f"{args.command = }")
 
+    dotenv_ = args.dot_env
+
+    if dotenv_ is not None:
+        dotenv_: pathlib.Path = args.dot_env.expanduser().resolve()
+        if not dotenv_.exists():
+            raise FileNotFoundError(f"{dotenv_.as_posix()} does not exist")
+
+    load_dotenv(
+        dotenv_path=dotenv_,
+        verbose=True,
+    )
+
     if args.command == "prepare":
         _logger.debug(f"{args.prepare_command = }")
 
@@ -1106,6 +1110,16 @@ def parse_args(args):
         help="set loglevel to DEBUG",
         action="store_const",
         const=logging.DEBUG,
+    )
+    main_parser.add_argument(
+        "-e",
+        "--dot-env",
+        dest="dot_env",
+        required=False,
+        default=None,
+        help="Full path to the .env file.",
+        metavar="DOT_ENV",
+        type=pathlib.Path,
     )
 
     base_subparsers = main_parser.add_subparsers(

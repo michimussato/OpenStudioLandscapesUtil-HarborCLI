@@ -59,7 +59,7 @@ source .venv/bin/activate
 
 ```
 $ openstudiolandscapesutil-harborcli --help
-usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] {prepare,systemd,project} ...
+usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] -e DOT_ENV {prepare,systemd,project} ...
 
 A tool to facilitate Harbor setup and getting it up and running using systemd.
 
@@ -71,6 +71,8 @@ options:
   --version             show program's version number and exit
   -v, --verbose         set loglevel to INFO (default: None)
   -vv, --very-verbose   set loglevel to DEBUG (default: None)
+  -e DOT_ENV, --dot-env DOT_ENV
+                        Full path to the .env file. (default: None)
 ```
 
 ### Prepare
@@ -82,19 +84,19 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli prepare download
+openstudiolandscapesutil-harborcli --dot-env ./.env prepare download
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli prepare extract --tar-file ./download/harbor-*.tgz
+openstudiolandscapesutil-harborcli --dot-env ./.env prepare extract --tar-file ./download/harbor-*.tgz
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli prepare configure
+openstudiolandscapesutil-harborcli --dot-env ./.env prepare configure
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli prepare install
+openstudiolandscapesutil-harborcli --dot-env ./.env prepare install
 ```
 
 ### Systemd
@@ -108,25 +110,25 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 #### Install
 
 ```shell
-openstudiolandscapesutil-harborcli systemd install --enable --start
+openstudiolandscapesutil-harborcli --dot-env ./.env systemd install --enable --start
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli systemd install --enable --start)
+eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd install --enable --start)
 ```
 
 #### Uninstall
 
 ```shell
-openstudiolandscapesutil-harborcli systemd uninstall
+openstudiolandscapesutil-harborcli --dot-env ./.env systemd uninstall
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli systemd uninstall)
+eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd uninstall)
 ```
 
 ##### Stop/Disable
@@ -138,25 +140,25 @@ To just `stop` and/or `disable`, use the normal `systemctl` commands
 #### Status
 
 ```shell
-openstudiolandscapesutil-harborcli systemd status
+openstudiolandscapesutil-harborcli --dot-env ./.env systemd status
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli systemd status)
+eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd status)
 ```
 
 #### Journalctl
 
 ```shell
-openstudiolandscapesutil-harborcli systemd journalctl
+openstudiolandscapesutil-harborcli --dot-env ./.env systemd journalctl
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli systemd journalctl)
+eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd journalctl)
 ```
 
 ### Project
@@ -170,25 +172,25 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 #### Create
 
 ```shell
-openstudiolandscapesutil-harborcli project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80
+openstudiolandscapesutil-harborcli --dot-env ./.env project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80)
+eval $(openstudiolandscapesutil-harborcli --dot-env ./.env project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80)
 ```
 
 #### Delete
 
 ```shell
-openstudiolandscapesutil-harborcli project delete --project-name library --host 127.0.0.1 --port 80
+openstudiolandscapesutil-harborcli --dot-env ./.env project delete --project-name library --host 127.0.0.1 --port 80
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli project delete --project-name library --host 127.0.0.1 --port 80)
+eval $(openstudiolandscapesutil-harborcli --dot-env ./.env project delete --project-name library --host 127.0.0.1 --port 80)
 ```
 
 ## Tagging
