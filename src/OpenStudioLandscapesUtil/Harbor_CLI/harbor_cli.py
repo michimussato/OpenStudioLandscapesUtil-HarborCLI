@@ -458,7 +458,7 @@ def systemd_install(
         enable: bool,
         start: bool,
         # install: bool,
-        outfile: pathlib.Path= HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name),  # this is just the temp file
+        outfile: pathlib.Path = HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name),  # this is just the temp file
 ) -> list[str | Any]:
     """Step 5"""
 

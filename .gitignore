@@ -54,3 +54,4 @@ MANIFEST
 .python-version
 .env
 
+/bin/harbor.service
