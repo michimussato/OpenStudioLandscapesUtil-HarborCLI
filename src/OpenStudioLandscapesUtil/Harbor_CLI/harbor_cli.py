@@ -71,6 +71,9 @@ _SU_METHODS= {
 
 SU_METHOD = _SU_METHODS["pkexec"]
 
+# Todo
+#  - [ ] Switch to .env
+
 HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
 HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path(os.environ.get("HARBOR_ROOT_DIR", "~/git/repos/OpenStudioLandscapes/.harbor")).expanduser().resolve()
 _HARBOR_DOWNLOAD_DIR: str = "download"
@@ -83,7 +86,7 @@ HARBOR_CONFIG_ROOT: pathlib.Path = HARBOR_BIN_DIR
 _HARBOR_PREPARE: str = "prepare"
 HARBOR_PREPARE: pathlib.Path = HARBOR_BIN_DIR.joinpath(_HARBOR_PREPARE)
 
-OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = os.environ.get("OPENSTUDIOLANDSCAPES__DOMAIN_LAN" ,"farm.evil")
+OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = os.environ.get("OPENSTUDIOLANDSCAPES__DOMAIN_LAN" ,"openstudiolandscapes.lan")
 OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = "harbor.{OPENSTUDIOLANDSCAPES__DOMAIN_LAN}".format(OPENSTUDIOLANDSCAPES__DOMAIN_LAN=OPENSTUDIOLANDSCAPES__DOMAIN_LAN)
 OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", 80))
 OPENSTUDIOLANDSCAPES__HARBOR_ADMIN: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ADMIN", "admin")
