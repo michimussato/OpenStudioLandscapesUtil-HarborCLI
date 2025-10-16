@@ -59,7 +59,9 @@ source .venv/bin/activate
 
 ```
 $ openstudiolandscapesutil-harborcli --help
-usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] -e DOT_ENV {prepare,systemd,project} ...
+usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] [--dot-env OPENSTUDIOLANDSCAPES__DOT_ENV] [--user OPENSTUDIOLANDSCAPES__HARBOR_ADMIN] [--password OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD] [--host OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME] [--port OPENSTUDIOLANDSCAPES__HARBOR_PORT]
+                                       [--harbor-root-dir OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR]
+                                       {prepare,systemd,project} ...
 
 A tool to facilitate Harbor setup and getting it up and running using systemd.
 
@@ -71,8 +73,30 @@ options:
   --version             show program's version number and exit
   -v, --verbose         set loglevel to INFO (default: None)
   -vv, --very-verbose   set loglevel to DEBUG (default: None)
-  -e DOT_ENV, --dot-env DOT_ENV
-                        Full path to the .env file. (default: None)
+  --dot-env OPENSTUDIOLANDSCAPES__DOT_ENV
+                        Full path to the .env file. (default: .env)
+  --user OPENSTUDIOLANDSCAPES__HARBOR_ADMIN
+                        Harbor Admin User. (default: admin)
+  --password OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD
+                        Harbor Admin Password. (default: Harbor12345)
+  --host OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME
+                        The host where Harbor is running (FQDN). (default: harbor.openstudiolandscapes.lan)
+  --port OPENSTUDIOLANDSCAPES__HARBOR_PORT
+                        The port where Harbor is listening. (default: 80)
+  --harbor-root-dir OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR
+                        Full path of the Harbor root directory. (default: .harbor)
+```
+
+### Environment
+
+```shell
+export OPENSTUDIOLANDSCAPES__DOMAIN_LAN=
+export OPENSTUDIOLANDSCAPES__DOT_ENV=
+export OPENSTUDIOLANDSCAPES__HARBOR_ADMIN=
+export OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD=
+export OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME=
+export OPENSTUDIOLANDSCAPES__HARBOR_PORT=
+export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=
 ```
 
 ### Prepare
@@ -84,19 +108,54 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env prepare download
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    prepare download \
+    --url <https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz> \
+    --destination-directory <download>
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env prepare extract --tar-file ./download/harbor-*.tgz
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    prepare extract \
+    --extract-to <bin> \
+    --tar-file ./download/harbor-*.tgz
 ```
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env prepare configure
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    prepare configure \
+    --destination-directory <bin>
 ```
+(`configure` has a `--dry-run` flag)
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env prepare install
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    prepare install \
+    --prepare-script <bin/prepare>
 ```
 
 ### Systemd
@@ -110,25 +169,57 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 #### Install
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env systemd install --enable --start
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    systemd install \
+    --enable \
+    --start
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd install --enable --start)
+eval $(openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    systemd install \
+    --enable \
+    --start)
 ```
 
 #### Uninstall
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env systemd uninstall
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    systemd uninstall
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd uninstall)
+eval $(openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    systemd uninstall)
 ```
 
 ##### Stop/Disable
@@ -137,29 +228,8 @@ To just `stop` and/or `disable`, use the normal `systemctl` commands
 - `systemctl stop harbor.service`
 - `systemctl disable harbor.service`
 
-#### Status
-
-```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env systemd status
-```
-
-To directly execute the returned command:
-
-```shell
-eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd status)
-```
-
-#### Journalctl
-
-```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env systemd journalctl
-```
-
-To directly execute the returned command:
-
-```shell
-eval $(openstudiolandscapesutil-harborcli --dot-env ./.env systemd journalctl)
-```
+To follow the journal:
+- `journalctl --follow --unit harbor.service`
 
 ### Project
 
@@ -172,25 +242,53 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 #### Create
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    project create --project-name openstudiolandscapes
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli --dot-env ./.env project create --project-name openstudiolandscapes --host 127.0.0.1 --port 80)
+eval $(openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    project create --project-name openstudiolandscapes)
 ```
 
 #### Delete
 
 ```shell
-openstudiolandscapesutil-harborcli --dot-env ./.env project delete --project-name library --host 127.0.0.1 --port 80
+openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    project delete --project-name library
 ```
 
 To directly execute the returned command:
 
 ```shell
-eval $(openstudiolandscapesutil-harborcli --dot-env ./.env project delete --project-name library --host 127.0.0.1 --port 80)
+eval $(openstudiolandscapesutil-harborcli \
+    --dot-env ./.env \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    project delete --project-name library)
 ```
 
 ## Tagging
