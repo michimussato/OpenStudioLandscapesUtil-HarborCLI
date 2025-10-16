@@ -73,79 +73,22 @@ SU_METHOD = _SU_METHODS["pkexec"]
 
 # Todo
 #  - [ ] Switch to .env
-
-HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
-HARBOR_ROOT_DIR: pathlib.Path = pathlib.Path(os.environ.get("HARBOR_ROOT_DIR", "~/git/repos/OpenStudioLandscapes/.harbor")).expanduser().resolve()
-_HARBOR_DOWNLOAD_DIR: str = "download"
-HARBOR_DOWNLOAD_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath(_HARBOR_DOWNLOAD_DIR)
-_HARBOR_BIN_DIR: str = "bin"
-HARBOR_BIN_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath(_HARBOR_BIN_DIR)
-_HARBOR_DATA_DIR: str = "data"
-HARBOR_DATA_DIR: pathlib.Path = HARBOR_ROOT_DIR.joinpath(_HARBOR_DATA_DIR)
-HARBOR_CONFIG_ROOT: pathlib.Path = HARBOR_BIN_DIR
-_HARBOR_PREPARE: str = "prepare"
-HARBOR_PREPARE: pathlib.Path = HARBOR_BIN_DIR.joinpath(_HARBOR_PREPARE)
-
-OPENSTUDIOLANDSCAPES__DOMAIN_LAN: str = os.environ.get("OPENSTUDIOLANDSCAPES__DOMAIN_LAN" ,"openstudiolandscapes.lan")
-OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = "harbor.{OPENSTUDIOLANDSCAPES__DOMAIN_LAN}".format(OPENSTUDIOLANDSCAPES__DOMAIN_LAN=OPENSTUDIOLANDSCAPES__DOMAIN_LAN)
-OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", 80))
+# Required Environment Variables
+OPENSTUDIOLANDSCAPES__DOT_ENV: pathlib.Path = pathlib.Path(os.environ.get("OPENSTUDIOLANDSCAPES__DOT_ENV", ".env"))
+OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR: pathlib.Path = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR", ".harbor")
+OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME" ,"harbor.openstudiolandscapes.lan")
+OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", "80"))
 OPENSTUDIOLANDSCAPES__HARBOR_ADMIN: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ADMIN", "admin")
 OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD", "Harbor12345")
 
-OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = "http://{host}:{port}/api/v2.0"
+# CLI Constants
+_HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
+_HARBOR_DOWNLOAD_DIR: str = "download"
+_HARBOR_BIN_DIR: str = "bin"
+_HARBOR_DATA_DIR: str = "data"
+_HARBOR_PREPARE: str = "prepare"
 
-HARBOR_CONFIG_DICT: dict = {
-    "hostname": OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
-    "http": {"port": OPENSTUDIOLANDSCAPES__HARBOR_PORT},
-    "harbor_admin_password": OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD,
-    "database": {
-        "password": "root123",
-        "max_idle_conns": 100,
-        "max_open_conns": 900,
-        "conn_max_idle_time": 0,
-    },
-    "data_volume": HARBOR_DATA_DIR.as_posix(),
-    "trivy": {
-        "ignore_unfixed": False,
-        "skip_update": False,
-        "skip_java_db_update": False,
-        "offline_scan": False,
-        "security_check": "vuln",
-        "insecure": False,
-        "timeout": "5m0s",
-    },
-    "jobservice": {
-        "max_job_workers": 10,
-        "job_loggers": ["STD_OUTPUT", "FILE"],
-        "logger_sweeper_duration": 1,
-    },
-    "notification": {
-        "webhook_job_max_retry": 3,
-        "webhook_job_http_client_timeout": 3,
-    },
-    "log": {
-        "level": "info",
-        "local": {
-            "rotate_count": 50,
-            "rotate_size": "200M",
-            "location": "/var/log/harbor",
-        },
-    },
-    "_version": "2.12.0",
-    "proxy": {
-        "http_proxy": None,
-        "https_proxy": None,
-        "no_proxy": None,
-        "components": ["core", "jobservice", "trivy"],
-    },
-    "upload_purging": {
-        "enabled": True,
-        "age": "168h",
-        "interval": "24h",
-        "dryrun": False,
-    },
-    "cache": {"enabled": False, "expire_hours": 24},
-}
+OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = "http://{host}:{port}/api/v2.0"
 
 SYSTEMD_UNIT: pathlib.Path = pathlib.Path("/usr/lib/systemd/system/harbor.service")
 
@@ -177,8 +120,11 @@ class HarborCLIError(Exception):
 # when using this Python module as a library.
 
 
-def auth_tokenized() -> str:
-    return f"{base64.b64encode(str(':'.join([OPENSTUDIOLANDSCAPES__HARBOR_ADMIN, OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD])).encode('utf-8')).decode('ascii')}"
+def auth_tokenized(
+        user: str,
+        password: str,
+) -> str:
+    return f"{base64.b64encode(str(':'.join([user, password])).encode('utf-8')).decode('ascii')}"
 
 
 def curlify(
@@ -303,10 +249,64 @@ def extract(
     return extract_to
 
 
-def _configure() -> str:
+def _configure(args) -> str:
+
+    harbor_config_dict: dict = {
+        "hostname": args.host,
+        "http": {"port": args.port},
+        "harbor_admin_password": args.password,
+        "database": {
+            "password": "root123",
+            "max_idle_conns": 100,
+            "max_open_conns": 900,
+            "conn_max_idle_time": 0,
+        },
+        "data_volume": args.harbor_root_dir.joinpath(_HARBOR_DATA_DIR).expanduser().resolve().as_posix(),
+        "trivy": {
+            "ignore_unfixed": False,
+            "skip_update": False,
+            "skip_java_db_update": False,
+            "offline_scan": False,
+            "security_check": "vuln",
+            "insecure": False,
+            "timeout": "5m0s",
+        },
+        "jobservice": {
+            "max_job_workers": 10,
+            "job_loggers": ["STD_OUTPUT", "FILE"],
+            "logger_sweeper_duration": 1,
+        },
+        "notification": {
+            "webhook_job_max_retry": 3,
+            "webhook_job_http_client_timeout": 3,
+        },
+        "log": {
+            "level": "info",
+            "local": {
+                "rotate_count": 50,
+                "rotate_size": "200M",
+                "location": "/var/log/harbor",
+            },
+        },
+        # Todo
+        "_version": "2.12.0",
+        "proxy": {
+            "http_proxy": None,
+            "https_proxy": None,
+            "no_proxy": None,
+            "components": ["core", "jobservice", "trivy"],
+        },
+        "upload_purging": {
+            "enabled": True,
+            "age": "168h",
+            "interval": "24h",
+            "dryrun": False,
+        },
+        "cache": {"enabled": False, "expire_hours": 24},
+    }
 
     harbor_yml: str = yaml.dump(
-        HARBOR_CONFIG_DICT,
+        harbor_config_dict,
         indent=2,
     )
 
@@ -314,16 +314,17 @@ def _configure() -> str:
 
 
 def configure(
-        out_dir: pathlib.Path,
-        overwrite: bool = False,
+        destination_directory: pathlib.Path,
+        overwrite: bool,
+        harbor_yml_data: str,
 ) -> Union[pathlib.Path, Exception]:
     """Step 3"""
 
-    out_dir: pathlib.Path = out_dir.expanduser().resolve()
+    destination_directory = destination_directory.expanduser().resolve()
 
-    _logger.debug(out_dir)
+    _logger.debug(destination_directory)
 
-    harbor_yml: pathlib.Path = out_dir.joinpath("harbor.yml")
+    harbor_yml: pathlib.Path = destination_directory.joinpath("harbor.yml")
     harbor_yml.parent.mkdir(parents=True, exist_ok=True)
 
     if not overwrite:
@@ -331,8 +332,6 @@ def configure(
             raise HarborCLIError(
                 f"{harbor_yml.as_posix()} already exists."
             ) from FileExistsError(harbor_yml)
-
-    harbor_yml_data: str = _configure()
 
     with open(harbor_yml, "w") as fw:
         fw.write(harbor_yml_data)
@@ -342,21 +341,21 @@ def configure(
 
 def prepare(
         prepare_script: pathlib.Path,
-        config_file: pathlib.Path = None,
+        # config_file: pathlib.Path = None,
 ) -> CompletedProcess[bytes]:
     """Step 4"""
 
     prepare_script = prepare_script.expanduser().resolve()
 
-    if config_file is not None:
-        config_file = config_file.expanduser().resolve()
-
-        # if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
-        if not config_file.exists():
-            raise HarborCLIError(
-                f"`harbor.yml` file not found at {config_file.as_posix()}. "
-                f"Run `openstudiolandscapesutil-harborcli configure`."
-            )
+    # if config_file is not None:
+    #     config_file = config_file.expanduser().resolve()
+    #
+    #     # if not HARBOR_CONFIG_ROOT.joinpath("harbor.yml").exists():
+    #     if not config_file.exists():
+    #         raise HarborCLIError(
+    #             f"`harbor.yml` file not found at {config_file.as_posix()}. "
+    #             f"Run `openstudiolandscapesutil-harborcli configure`."
+    #         )
 
     _logger.debug(prepare_script)
 
@@ -380,13 +379,13 @@ def prepare(
         prepare_script.as_posix(),
     ]
 
-    if config_file is not None:
-        cmd_prepare.extend(
-            [
-                "--conf",
-                config_file.as_posix()
-            ]
-        )
+    # if config_file is not None:
+    #     cmd_prepare.extend(
+    #         [
+    #             "--conf",
+    #             config_file.as_posix()
+    #         ]
+    #     )
 
     _logger.debug(f"{' '.join(bash_c)} \"{' '.join(cmd_prepare)}\"")
 
@@ -416,7 +415,7 @@ def prepare(
     return proc.returncode
 
 
-def _systemd_unit_dict(
+def systemd_unit_dict(
         working_directory: pathlib.Path,
         exec_start: typing.List[str],
         exec_reload: typing.List[str],
@@ -450,14 +449,14 @@ def _systemd_unit_dict(
 
 def systemd_install(
         su_method: str,
-        enable: bool,
+        outfile: pathlib.Path,
         start: bool,
-        # install: bool,
-        outfile: pathlib.Path = HARBOR_BIN_DIR.joinpath(SYSTEMD_UNIT.name),  # this is just the temp file
+        enable: bool,
+        harbor_root_dir: pathlib.Path,
 ) -> list[str | Any]:
     """Step 5"""
 
-    outfile = outfile.expanduser().resolve()
+    outfile = pathlib.Path(outfile).expanduser().resolve()
 
     _logger.debug(start)
     _logger.debug(enable)
@@ -468,7 +467,7 @@ def systemd_install(
         "--progress",
         DOCKER_PROGRESS[2],
         "--file",
-        HARBOR_CONFIG_ROOT.joinpath("docker-compose.yml").as_posix(),
+        harbor_root_dir.joinpath(_HARBOR_BIN_DIR, "docker-compose.yml").as_posix(),
         "--project-name",
         "openstudiolandscapes-harbor",
     ]
@@ -489,8 +488,8 @@ def systemd_install(
         "down",
     ]
 
-    unit_dict: dict = _systemd_unit_dict(
-        working_directory=HARBOR_BIN_DIR,
+    unit_dict: dict = systemd_unit_dict(
+        working_directory=harbor_root_dir,
         exec_start=exec_start,
         exec_reload=exec_reload,
         exec_stop=exec_stop,
@@ -599,18 +598,18 @@ def systemd_install(
 
 def systemd_uninstall(
         su_method: str,
-        disable: bool = True,
-        stop: bool = True,
-        remove: bool = True,
+        disable: bool,
+        stop: bool,
+        uninstall: bool,
 ) -> list[str | Any]:
 
-    if remove:
+    if uninstall:
         stop = True
         disable = True
 
     _logger.debug(stop)
     _logger.debug(disable)
-    _logger.debug(remove)
+    _logger.debug(uninstall)
 
     systemctl_disable = [
         shutil.which("systemctl"),
@@ -741,9 +740,11 @@ def systemd_journalctl() -> list[str | Any]:
 
 
 def project_create(
-        project_name: str,
         host: str,
         port: int,
+        user: str,
+        password: str,
+        project_name: str,
 ) -> list[str | Any]:
 
     def project_create_request_dict(project_name_) -> Dict:
@@ -752,7 +753,7 @@ def project_create(
             "method": RequestMethod.POST.value,
             "headers": {
                 "accept": "application/json",
-                "authorization": f"Basic {auth_tokenized()}",
+                "authorization": f"Basic {auth_tokenized(user=user, password=password)}",
                 "X-Resource-Name-In-Location": "false",
                 "Content-Type": "application/json",
             },
@@ -805,9 +806,11 @@ def project_create(
 
 
 def project_delete(
-        project_name: str,
         host: str,
         port: int,
+        user: str,
+        password: str,
+        project_name: str,
 ) -> list[str | Any]:
 
     def project_delete_request_dict(project_name_) -> Dict:
@@ -817,7 +820,7 @@ def project_delete(
             "headers": {
                 "accept": "application/json",
                 "X-Is-Resource-Name": "false",
-                "authorization": f"Basic {auth_tokenized()}",
+                "authorization": f"Basic {auth_tokenized(user=user, password=password)}",
             },
             "payload": {
                 # # json encoding happens automatically.
@@ -909,7 +912,7 @@ def eval_(
         elif args.prepare_command == "configure":
             if args.dry_run:
                 # from pprint import pprint
-                print(_configure())
+                print(_configure(args))
                 return None
             else:
                 result = _cli_configure(args)
@@ -986,9 +989,12 @@ def _cli_configure(
         args: argparse.Namespace,
 ) -> pathlib.Path:
 
+    harbor_yml_data: str = _configure(args=args)
+
     result: pathlib.Path = configure(
-        out_dir=args.destination_directory,
+        destination_directory=args.destination_directory,
         overwrite=args.overwrite,
+        harbor_yml_data=harbor_yml_data,
     )
 
     return result
@@ -1000,7 +1006,7 @@ def _cli_install(
 
     result: subprocess.CompletedProcess = prepare(
         prepare_script=args.prepare_script,
-        config_file=None,  # args.config_file,
+        # config_file=None,  # args.config_file,
     )
 
     return result
@@ -1012,9 +1018,10 @@ def _cli_systemd_install(
 
     result: list = systemd_install(
         su_method=args.su_method,
-        enable=args.enable,
-        start=args.start,
         outfile=args.outfile,
+        start=args.start,
+        enable=args.enable,
+        harbor_root_dir=args.harbor_root_dir,
     )
 
     return result
@@ -1026,6 +1033,9 @@ def _cli_systemd_uninstall(
 
     result: list = systemd_uninstall(
         su_method=args.su_method,
+        disable=args.disable,
+        stop=args.stop,
+        uninstall=args.uninstall,
     )
 
     return result
@@ -1050,9 +1060,11 @@ def _cli_project_create(
 ) -> list:
 
     result: list = project_create(
-        project_name=args.project_name,
         host=args.host,
         port=args.port,
+        user=args.user,
+        password=args.password,
+        project_name=args.project_name,
     )
 
     return result
@@ -1063,9 +1075,11 @@ def _cli_project_delete(
 ) -> list:
 
     result: list = project_delete(
-        project_name=args.project_name,
         host=args.host,
         port=args.port,
+        user=args.user,
+        password=args.password,
+        project_name=args.project_name,
     )
 
     return result
@@ -1115,13 +1129,68 @@ def parse_args(args):
         const=logging.DEBUG,
     )
     main_parser.add_argument(
-        "-e",
+        # "-e",
         "--dot-env",
         dest="dot_env",
-        required=False,
-        default=None,
+        required=not bool(OPENSTUDIOLANDSCAPES__DOT_ENV),
+        default=pathlib.Path(OPENSTUDIOLANDSCAPES__DOT_ENV) if bool(OPENSTUDIOLANDSCAPES__DOT_ENV) else None,
         help="Full path to the .env file.",
-        metavar="DOT_ENV",
+        metavar="OPENSTUDIOLANDSCAPES__DOT_ENV",
+        type=pathlib.Path,
+    )
+
+    main_parser.add_argument(
+        "--user",
+        # "-h",
+        dest="user",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_ADMIN),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_ADMIN if bool(OPENSTUDIOLANDSCAPES__HARBOR_ADMIN) else None,
+        help="Harbor Admin User.",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_ADMIN",
+        type=str,
+    )
+
+    main_parser.add_argument(
+        "--password",
+        # "-h",
+        dest="password",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD if bool(OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD) else None,
+        help="Harbor Admin Password.",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD",
+        type=str,
+    )
+
+    main_parser.add_argument(
+        "--host",
+        # "-h",
+        dest="host",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME if bool(OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME) else None,
+        help="The host where Harbor is running (FQDN).",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME",
+        type=str,
+    )
+
+    main_parser.add_argument(
+        "--port",
+        # "-p",
+        dest="port",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_PORT),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_PORT if bool(OPENSTUDIOLANDSCAPES__HARBOR_PORT) else None,
+        help="The port where Harbor is listening.",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_PORT",
+        type=int,
+    )
+
+    main_parser.add_argument(
+        "--harbor-root-dir",
+        # "-hrd",
+        dest="harbor_root_dir",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR if bool(OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR) else None,
+        help="Full path of the Harbor root directory.",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR",
         type=pathlib.Path,
     )
 
@@ -1155,7 +1224,7 @@ def parse_args(args):
         "-u",
         dest="url",
         required=False,
-        default=HARBOR_URL,
+        default=_HARBOR_URL,
         help="URL of the Harbor Installer TAR.",
         metavar="URL",
         type=str,
@@ -1166,7 +1235,7 @@ def parse_args(args):
         "-d",
         dest="destination_directory",
         required=False,
-        default=pathlib.Path().cwd().joinpath(_HARBOR_DOWNLOAD_DIR),
+        default=pathlib.Path().cwd().relative_to(pathlib.Path().cwd()).joinpath(_HARBOR_DOWNLOAD_DIR),
         help="Where to save the downloaded files.",
         metavar="DESTINATION_DIRECTORY",
         type=pathlib.Path,
@@ -1240,7 +1309,7 @@ def parse_args(args):
         "-d",
         dest="destination_directory",
         required=False,
-        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR),
+        default=pathlib.Path().cwd().relative_to(pathlib.Path().cwd()).joinpath(_HARBOR_BIN_DIR),
         help="Directory where to save the harbor.yml file.",
         metavar="DESTINATION_DIRECTORY",
         type=pathlib.Path,
@@ -1267,7 +1336,7 @@ def parse_args(args):
         "-s",
         dest="prepare_script",
         required=False,
-        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, "prepare"),
+        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, _HARBOR_PREPARE),
         help="Full path to the extracted prepare script.",
         metavar="PREPARE_SCRIPT",
         type=pathlib.Path,
@@ -1379,21 +1448,22 @@ def parse_args(args):
         type=str,
     )
 
-    ## STATUS
-
-    subparser_status = systemd_subparsers.add_parser(
-        name="status",
-        formatter_class=_formatter,
-        help="Systemd unit status.",
-    )
-
-    ## JOURNALCTL
-
-    subparser_journalctl = systemd_subparsers.add_parser(
-        name="journalctl",
-        formatter_class=_formatter,
-        help="Follow logs.",
-    )
+    # Todo
+    # ## STATUS
+    #
+    # subparser_status = systemd_subparsers.add_parser(
+    #     name="status",
+    #     formatter_class=_formatter,
+    #     help="Systemd unit status.",
+    # )
+    #
+    # ## JOURNALCTL
+    #
+    # subparser_journalctl = systemd_subparsers.add_parser(
+    #     name="journalctl",
+    #     formatter_class=_formatter,
+    #     help="Follow logs.",
+    # )
 
     ####################################################################################################################
     # PROJECT
@@ -1428,28 +1498,6 @@ def parse_args(args):
         type=str,
     )
 
-    subparser_project_create.add_argument(
-        "--host",
-        # "-h",
-        dest="host",
-        required=False,
-        default=OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
-        help="The host where Harbor is running.",
-        metavar="HOST",
-        type=str,
-    )
-
-    subparser_project_create.add_argument(
-        "--port",
-        # "-p",
-        dest="port",
-        required=False,
-        default=OPENSTUDIOLANDSCAPES__HARBOR_PORT,
-        help="The port where Harbor is listening.",
-        metavar="PORT",
-        type=int,
-    )
-
     ## DELETE
 
     subparser_project_delete = project_subparsers.add_parser(
@@ -1467,28 +1515,6 @@ def parse_args(args):
         help="The name of the project to be deleted.",
         metavar="PROJECT_NAME",
         type=str,
-    )
-
-    subparser_project_delete.add_argument(
-        "--host",
-        # "-h",
-        dest="host",
-        required=False,
-        default=OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME,
-        help="The host where Harbor is running.",
-        metavar="HOST",
-        type=str,
-    )
-
-    subparser_project_delete.add_argument(
-        "--port",
-        # "-p",
-        dest="port",
-        required=False,
-        default=OPENSTUDIOLANDSCAPES__HARBOR_PORT,
-        help="The port where Harbor is listening.",
-        metavar="PORT",
-        type=int,
     )
 
     return main_parser.parse_args()
