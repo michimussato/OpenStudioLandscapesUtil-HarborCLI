@@ -13,6 +13,11 @@ __copyright__ = "Michael Mussato"
 __license__ = "AGPL-3.0-or-later"
 
 
+# Todo
+#  - [ ] Set up logging
+#        https://pytest-with-eric.com/pytest-best-practices/pytest-logging/
+
+
 def harbor_yml_data() -> str:
     ret = textwrap.dedent(
         """\
