@@ -8,13 +8,12 @@
     * [venv](#venv)
   * [Installation](#installation)
   * [Usage](#usage)
+    * [Environment](#environment)
     * [Prepare](#prepare)
     * [Systemd](#systemd)
       * [Install](#install)
       * [Uninstall](#uninstall)
         * [Stop/Disable](#stopdisable)
-      * [Status](#status)
-      * [Journalctl](#journalctl)
     * [Project](#project)
       * [Create](#create)
       * [Delete](#delete)
@@ -89,14 +88,102 @@ options:
 
 ### Environment
 
+Some options (and their default values) for the `openstudiolandscapes-harborcli`
+command are based on the existence/values of environment variables. 
+If such values are not in the environment, the options are _required_. 
+If such values are specified in the environment, these options are _optional_ 
+and would **override** the values available in the environment.
+
 ```shell
-export OPENSTUDIOLANDSCAPES__DOMAIN_LAN=
-export OPENSTUDIOLANDSCAPES__DOT_ENV=
 export OPENSTUDIOLANDSCAPES__HARBOR_ADMIN=
 export OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD=
 export OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME=
 export OPENSTUDIOLANDSCAPES__HARBOR_PORT=
 export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=
+```
+
+
+
+Assumed, we have the following `.env` file:
+
+```
+export OPENSTUDIOLANDSCAPES__HARBOR_ADMIN=admin
+export OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD=Harbor12345
+export OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME=harbor.openstudiolandscapes.lan
+export OPENSTUDIOLANDSCAPES__HARBOR_PORT=80
+export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=./.harbor
+```
+
+...these commands are equivalent:
+
+```shell
+openstudiolandscapesutil-harborcli \
+    --user admin \
+    --password Harbor12345 \
+    --host harbor.openstudiolandscapes.lan \
+    --port 80 \
+    --harbor-root-dir ./.harbor \
+    prepare download \
+    --url https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz \
+    --destination-directory download
+```
+
+and
+
+```shell
+source .env
+openstudiolandscapesutil-harborcli \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    prepare download \
+    --url https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz \
+    --destination-directory download
+```
+
+and
+
+```shell
+source .env
+openstudiolandscapesutil-harborcli \
+    prepare download
+```
+
+However, these are not:
+
+```shell
+source .env
+openstudiolandscapesutil-harborcli \
+    --port 8080 \
+    prepare download
+```
+
+which would act as a shortcut for:
+
+```shell
+source .env
+openstudiolandscapesutil-harborcli \
+    --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
+    --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
+    --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
+    --port 8080 \
+    --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
+    prepare download \
+    --url https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz \
+    --destination-directory download
+```
+
+#### Environment Variables vs. .env
+
+Instead of specifying all variables manually, we can leverage `.env` files
+potentially already available:
+
+```shell
+# set -a
+source .env
+# set +a
 ```
 
 ### Prepare
@@ -109,7 +196,6 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -122,7 +208,6 @@ openstudiolandscapesutil-harborcli \
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -135,7 +220,6 @@ openstudiolandscapesutil-harborcli \
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -148,7 +232,6 @@ openstudiolandscapesutil-harborcli \
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -170,7 +253,6 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -185,7 +267,6 @@ To directly execute the returned command:
 
 ```shell
 eval $(openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -200,7 +281,6 @@ eval $(openstudiolandscapesutil-harborcli \
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -213,7 +293,6 @@ To directly execute the returned command:
 
 ```shell
 eval $(openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -243,7 +322,6 @@ cd ~/git/repos/OpenStudioLandscapes/.harbor
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -256,7 +334,6 @@ To directly execute the returned command:
 
 ```shell
 eval $(openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -269,7 +346,6 @@ eval $(openstudiolandscapesutil-harborcli \
 
 ```shell
 openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
@@ -282,7 +358,6 @@ To directly execute the returned command:
 
 ```shell
 eval $(openstudiolandscapesutil-harborcli \
-    --dot-env ./.env \
     --user ${OPENSTUDIOLANDSCAPES__HARBOR_USERNAME} \
     --password ${OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD} \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \

@@ -74,7 +74,7 @@ SU_METHOD = _SU_METHODS["pkexec"]
 # Todo
 #  - [ ] Switch to .env
 # Required Environment Variables
-OPENSTUDIOLANDSCAPES__DOT_ENV: pathlib.Path = pathlib.Path(os.environ.get("OPENSTUDIOLANDSCAPES__DOT_ENV", ".env"))
+# OPENSTUDIOLANDSCAPES__DOT_ENV: pathlib.Path = pathlib.Path(os.environ.get("OPENSTUDIOLANDSCAPES__DOT_ENV", ".env"))
 OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR: pathlib.Path = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR", ".harbor")
 OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME" ,"harbor.openstudiolandscapes.lan")
 OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", "80"))
@@ -82,6 +82,8 @@ OPENSTUDIOLANDSCAPES__HARBOR_ADMIN: str = os.environ.get("OPENSTUDIOLANDSCAPES__
 OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD", "Harbor12345")
 
 # CLI Constants
+# Todo
+#  - [ ] these values are in the .env as well
 _HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
 _HARBOR_DOWNLOAD_DIR: str = "download"
 _HARBOR_BIN_DIR: str = "bin"
@@ -884,17 +886,17 @@ def eval_(
 
     _logger.debug(f"{args.command = }")
 
-    dotenv_ = args.dot_env
-
-    if dotenv_ is not None:
-        dotenv_: pathlib.Path = args.dot_env.expanduser().resolve()
-        if not dotenv_.exists():
-            raise FileNotFoundError(f"{dotenv_.as_posix()} does not exist")
-
-    load_dotenv(
-        dotenv_path=dotenv_,
-        verbose=True,
-    )
+    # dotenv_ = args.dot_env
+    #
+    # if dotenv_ is not None:
+    #     dotenv_: pathlib.Path = args.dot_env.expanduser().resolve()
+    #     if not dotenv_.exists():
+    #         raise FileNotFoundError(f"{dotenv_.as_posix()} does not exist")
+    #
+    # load_dotenv(
+    #     dotenv_path=dotenv_,
+    #     verbose=True,
+    # )
 
     if args.command == "prepare":
         _logger.debug(f"{args.prepare_command = }")
@@ -1128,16 +1130,16 @@ def parse_args(args):
         action="store_const",
         const=logging.DEBUG,
     )
-    main_parser.add_argument(
-        # "-e",
-        "--dot-env",
-        dest="dot_env",
-        required=not bool(OPENSTUDIOLANDSCAPES__DOT_ENV),
-        default=pathlib.Path(OPENSTUDIOLANDSCAPES__DOT_ENV) if bool(OPENSTUDIOLANDSCAPES__DOT_ENV) else None,
-        help="Full path to the .env file.",
-        metavar="OPENSTUDIOLANDSCAPES__DOT_ENV",
-        type=pathlib.Path,
-    )
+    # main_parser.add_argument(
+    #     # "-e",
+    #     "--dot-env",
+    #     dest="dot_env",
+    #     required=not bool(OPENSTUDIOLANDSCAPES__DOT_ENV),
+    #     default=pathlib.Path(OPENSTUDIOLANDSCAPES__DOT_ENV) if bool(OPENSTUDIOLANDSCAPES__DOT_ENV) else None,
+    #     help="Full path to the .env file.",
+    #     metavar="OPENSTUDIOLANDSCAPES__DOT_ENV",
+    #     type=pathlib.Path,
+    # )
 
     main_parser.add_argument(
         "--user",
