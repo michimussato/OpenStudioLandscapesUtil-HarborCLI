@@ -129,7 +129,7 @@ export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=./.harbor
 > stow --override .env --dir ${REPOS_DIR}/stow/env/OpenStudioLandscapes --target ${REPOS_DIR}/OpenStudioLandscapesUtil-HarborCLI --stow openstudiolandscapes.cloud-ip.cc -vvv
 > ```
 > 
-> More info: on `stow` [here](https://www.gnu.org/software/stow/):
+> More info: on `stow` [here](https://www.gnu.org/software/stow/).
 
 ...these commands are equivalent:
 
