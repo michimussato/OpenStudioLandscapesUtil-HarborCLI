@@ -9,6 +9,7 @@
   * [Installation](#installation)
   * [Usage](#usage)
     * [Environment](#environment)
+      * [Environment Variables vs. .env](#environment-variables-vs-env)
     * [Prepare](#prepare)
     * [Systemd](#systemd)
       * [Install](#install)
