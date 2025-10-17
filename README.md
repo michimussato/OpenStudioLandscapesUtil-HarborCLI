@@ -120,6 +120,17 @@ export OPENSTUDIOLANDSCAPES__HARBOR_PORT=80
 export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=./.harbor
 ```
 
+> !NOTE
+> Or use the stowed `.env` from the [stow](https://github.com/michimussato/stow)
+> repository (not public):
+> 
+> ```shell
+> REPOS_DIR=~/git/repos
+> stow --override .env --dir ${REPOS_DIR}/stow/env/OpenStudioLandscapes --target ${REPOS_DIR}/OpenStudioLandscapesUtil-HarborCLI --stow openstudiolandscapes.cloud-ip.cc -vvv
+> ```
+> 
+> More info: on `stow` [here](https://www.gnu.org/software/stow/):
+
 ...these commands are equivalent:
 
 ```shell
