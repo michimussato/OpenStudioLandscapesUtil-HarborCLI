@@ -120,7 +120,7 @@ export OPENSTUDIOLANDSCAPES__HARBOR_PORT=80
 export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=./.harbor
 ```
 
-> !NOTE
+> [!NOTE]
 > Or use the stowed `.env` from the [stow](https://github.com/michimussato/stow)
 > repository (not public):
 > 
