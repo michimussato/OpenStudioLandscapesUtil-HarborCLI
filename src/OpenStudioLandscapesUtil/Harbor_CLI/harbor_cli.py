@@ -81,16 +81,17 @@ OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPE
 OPENSTUDIOLANDSCAPES__HARBOR_ADMIN: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ADMIN", "admin")
 OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD", "Harbor12345")
 
-# CLI Constants
-# Todo
-#  - [ ] these values are in the .env as well
-_HARBOR_URL: str = "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz"
-_HARBOR_DOWNLOAD_DIR: str = "download"
-_HARBOR_BIN_DIR: str = "bin"
-_HARBOR_DATA_DIR: str = "data"
-_HARBOR_PREPARE: str = "prepare"
+OPENSTUDIOLANDSCAPES__HARBOR_INSTALLER: str = os.environ.get(
+    "OPENSTUDIOLANDSCAPES__HARBOR_INSTALLER",
+    "https://github.com/goharbor/harbor/releases/download/v2.12.2/harbor-online-installer-v2.12.2.tgz",
+)
+OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR", "download")
+OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR", "bin")
+OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR", "data")
+OPENSTUDIOLANDSCAPES__HARBOR_PREPARE: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PREPARE", "prepare")
+OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT", "/api/v2.0")
 
-OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = "http://{host}:{port}/api/v2.0"
+# OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = "http://{host}:{port}/api/v2.0"
 
 SYSTEMD_UNIT: pathlib.Path = pathlib.Path("/usr/lib/systemd/system/harbor.service")
 
@@ -263,7 +264,7 @@ def _configure(args) -> str:
             "max_open_conns": 900,
             "conn_max_idle_time": 0,
         },
-        "data_volume": args.harbor_root_dir.joinpath(_HARBOR_DATA_DIR).expanduser().resolve().as_posix(),
+        "data_volume": args.harbor_root_dir.joinpath(args.harbor_data).expanduser().resolve().as_posix(),
         "trivy": {
             "ignore_unfixed": False,
             "skip_update": False,
@@ -426,8 +427,8 @@ def systemd_unit_dict(
 
     unit_dict = {
         "Unit": {
-            "Description": "Harbor",
-            "Documentation": "https://goharbor.io/",
+            "Description": "Harbor for OpenStudioLandscapes",
+            "Documentation": "https://github.com/michimussato/OpenStudioLandscapes/blob/main/wiki/guides/harbor.md",
         },
         "Service": {
             "Type": "simple",
@@ -454,7 +455,7 @@ def systemd_install(
         outfile: pathlib.Path,
         start: bool,
         enable: bool,
-        harbor_root_dir: pathlib.Path,
+        harbor_bin_dir: pathlib.Path,
 ) -> list[str | Any]:
     """Step 5"""
 
@@ -469,7 +470,7 @@ def systemd_install(
         "--progress",
         DOCKER_PROGRESS[2],
         "--file",
-        harbor_root_dir.joinpath(_HARBOR_BIN_DIR, "docker-compose.yml").as_posix(),
+        harbor_bin_dir.joinpath("docker-compose.yml").as_posix(),
         "--project-name",
         "openstudiolandscapes-harbor",
     ]
@@ -491,7 +492,7 @@ def systemd_install(
     ]
 
     unit_dict: dict = systemd_unit_dict(
-        working_directory=harbor_root_dir,
+        working_directory=harbor_bin_dir,
         exec_start=exec_start,
         exec_reload=exec_reload,
         exec_stop=exec_stop,
@@ -751,7 +752,8 @@ def project_create(
 
     def project_create_request_dict(project_name_) -> Dict:
         _project_create_dict: dict = {
-            "endpoint": f"{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT.format(host=host, port=port)}/projects",
+            "endpoint": f"http://{host}:{port}{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT}/projects",
+            # "endpoint": f"{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT.format(host=host, port=port)}/projects",
             "method": RequestMethod.POST.value,
             "headers": {
                 "accept": "application/json",
@@ -817,7 +819,7 @@ def project_delete(
 
     def project_delete_request_dict(project_name_) -> Dict:
         _project_delete_dict: dict = {
-            "endpoint": f"{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT.format(host=host, port=port)}/projects/{project_name_}",
+            "endpoint": f"http://{host}:{port}{OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT}/projects/{project_name_}",
             "method": RequestMethod.DELETE.value,
             "headers": {
                 "accept": "application/json",
@@ -969,7 +971,7 @@ def _cli_download(
 
     result = download(
         url=args.url,
-        destination_directory=args.destination_directory,
+        destination_directory=args.harbor_root_dir.joinpath(args.harbor_download),
     )
 
     return result
@@ -980,7 +982,7 @@ def _cli_extract(
 ) -> pathlib.Path:
 
     result = extract(
-        extract_to=args.extract_to,
+        extract_to=args.harbor_root_dir.joinpath(args.harbor_bin),
         tar_file=args.tar_file,
     )
 
@@ -994,7 +996,7 @@ def _cli_configure(
     harbor_yml_data: str = _configure(args=args)
 
     result: pathlib.Path = configure(
-        destination_directory=args.destination_directory,
+        destination_directory=args.harbor_root_dir.joinpath(args.harbor_bin),
         overwrite=args.overwrite,
         harbor_yml_data=harbor_yml_data,
     )
@@ -1007,7 +1009,7 @@ def _cli_install(
 ) -> subprocess.CompletedProcess:
 
     result: subprocess.CompletedProcess = prepare(
-        prepare_script=args.prepare_script,
+        prepare_script=args.harbor_root_dir.joinpath(args.harbor_bin, args.harbor_prepare),
         # config_file=None,  # args.config_file,
     )
 
@@ -1023,7 +1025,7 @@ def _cli_systemd_install(
         outfile=args.outfile,
         start=args.start,
         enable=args.enable,
-        harbor_root_dir=args.harbor_root_dir,
+        harbor_bin_dir=args.harbor_root_dir.joinpath(args.harbor_bin),
     )
 
     return result
@@ -1196,6 +1198,54 @@ def parse_args(args):
         type=pathlib.Path,
     )
 
+    main_parser.add_argument(
+        "--harbor-download",
+        # "-hrd",
+        dest="harbor_download",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR if bool(OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR) else None,
+        help="Where to save the downloaded files "
+             "(subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR).",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR",
+        type=str,
+    )
+
+    main_parser.add_argument(
+        "--harbor-bin",
+        # "-hrd",
+        dest="harbor_bin",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR if bool(OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR) else None,
+        help="Name of the bin directory "
+             "(subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR).",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR",
+        type=str,
+    )
+
+    main_parser.add_argument(
+        "--harbor-data",
+        # "-hrd",
+        dest="harbor_data",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR if bool(OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR) else None,
+        help="Name of the data directory "
+             "(subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR).",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR",
+        type=str,
+    )
+
+    main_parser.add_argument(
+        "--harbor-prepare",
+        # "-hrd",
+        dest="harbor_prepare",
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_PREPARE),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_PREPARE if bool(OPENSTUDIOLANDSCAPES__HARBOR_PREPARE) else None,
+        help="Name of the prepare file "
+             "(file of the OPENSTUDIOLANDSCAPES__HARBOR_BIN subdirectory).",
+        metavar="OPENSTUDIOLANDSCAPES__HARBOR_PREPARE",
+        type=str,
+    )
+
     base_subparsers = main_parser.add_subparsers(
         dest="command",
     )
@@ -1225,23 +1275,24 @@ def parse_args(args):
         "--url",
         "-u",
         dest="url",
-        required=False,
-        default=_HARBOR_URL,
+        required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_INSTALLER),
+        default=OPENSTUDIOLANDSCAPES__HARBOR_INSTALLER if bool(OPENSTUDIOLANDSCAPES__HARBOR_INSTALLER) else None,
         help="URL of the Harbor Installer TAR.",
         metavar="URL",
         type=str,
     )
 
-    subparser_download.add_argument(
-        "--destination-directory",
-        "-d",
-        dest="destination_directory",
-        required=False,
-        default=pathlib.Path().cwd().relative_to(pathlib.Path().cwd()).joinpath(_HARBOR_DOWNLOAD_DIR),
-        help="Where to save the downloaded files.",
-        metavar="DESTINATION_DIRECTORY",
-        type=pathlib.Path,
-    )
+    # subparser_download.add_argument(
+    #     "--destination-directory",
+    #     "-d",
+    #     dest="destination_directory",
+    #     required=not bool(OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR),
+    #     default=OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR if bool(OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR) else None,
+    #     help="Where to save the downloaded files "
+    #          "(subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR).",
+    #     metavar="DESTINATION_DIRECTORY",
+    #     type=str,
+    # )
 
     ## EXTRACT
 
@@ -1250,17 +1301,17 @@ def parse_args(args):
         formatter_class=_formatter,
     )
 
-    subparser_extract.add_argument(
-        "--extract-to",
-        "-x",
-        dest="extract_to",
-        required=False,
-        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR),
-        help="Full path where the files will be extracted to "
-             "(no subdirectories will be created).",
-        metavar="EXTRACT_TO",
-        type=pathlib.Path,
-    )
+    # subparser_extract.add_argument(
+    #     "--extract-to",
+    #     "-x",
+    #     dest="extract_to",
+    #     required=False,
+    #     default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR),
+    #     help="Where to extract the files to "
+    #          "(subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR).",
+    #     metavar="EXTRACT_TO",
+    #     type=str,
+    # )
 
     subparser_extract.add_argument(
         "--tar-file",
@@ -1306,16 +1357,16 @@ def parse_args(args):
         help="Print the configuration to stdout.",
     )
 
-    mutex_configure.add_argument(
-        "--destination-directory",
-        "-d",
-        dest="destination_directory",
-        required=False,
-        default=pathlib.Path().cwd().relative_to(pathlib.Path().cwd()).joinpath(_HARBOR_BIN_DIR),
-        help="Directory where to save the harbor.yml file.",
-        metavar="DESTINATION_DIRECTORY",
-        type=pathlib.Path,
-    )
+    # mutex_configure.add_argument(
+    #     "--destination-directory",
+    #     "-d",
+    #     dest="destination_directory",
+    #     required=False,
+    #     default=pathlib.Path().cwd().relative_to(pathlib.Path().cwd()).joinpath(_HARBOR_BIN_DIR),
+    #     help="Directory where to save the harbor.yml file.",
+    #     metavar="DESTINATION_DIRECTORY",
+    #     type=str,
+    # )
 
     subparser_configure.add_argument(
         "--overwrite",
@@ -1333,16 +1384,16 @@ def parse_args(args):
         formatter_class=_formatter,
     )
 
-    subparser_run_prepare.add_argument(
-        "--prepare-script",
-        "-s",
-        dest="prepare_script",
-        required=False,
-        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, _HARBOR_PREPARE),
-        help="Full path to the extracted prepare script.",
-        metavar="PREPARE_SCRIPT",
-        type=pathlib.Path,
-    )
+    # subparser_run_prepare.add_argument(
+    #     "--prepare-script",
+    #     "-s",
+    #     dest="prepare_script",
+    #     required=False,
+    #     default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, _HARBOR_PREPARE),
+    #     help="Full path to the extracted prepare script.",
+    #     metavar="PREPARE_SCRIPT",
+    #     type=pathlib.Path,
+    # )
 
     # This is not working as expected:
     # $ ./prepare --help
@@ -1404,12 +1455,12 @@ def parse_args(args):
         "-f",
         dest="outfile",
         required=False,
-        default=pathlib.Path().cwd().joinpath(_HARBOR_BIN_DIR, SYSTEMD_UNIT.name),
-        help="Where to save the intermediate unit file. "
+        default=SYSTEMD_UNIT.name,
+        help="Name of the unit file. "
              "It will get copied to the final destination "
-             "upon command completion.",
+             f"upon command completion: {SYSTEMD_UNIT.parent}.",
         metavar="OUTFILE",
-        type=pathlib.Path,
+        type=str,
     )
 
     subparser_install.add_argument(

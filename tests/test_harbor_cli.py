@@ -101,6 +101,7 @@ def test__configure_default():
     args.password = "Harbor12345"
     args.port = "80"
     args.harbor_root_dir = pathlib.Path(__file__).parent
+    args.harbor_data = harbor_cli.OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR
 
     expected: str = textwrap.dedent(
         """\
@@ -170,6 +171,7 @@ def test__configure_non_default():
     args.password = "AsDf"
     args.port = "88"
     args.harbor_root_dir = pathlib.Path(__file__).parent
+    args.harbor_data = "data"
 
     expected: str = textwrap.dedent(
         """\
@@ -234,7 +236,7 @@ def test__configure_non_default():
 
 
 def test_systemd_unit_dict():
-    expected = {'Unit': {'Description': 'Harbor', 'Documentation': 'https://goharbor.io/'},
+    expected = {'Unit': {'Description': 'Harbor for OpenStudioLandscapes', 'Documentation': 'https://github.com/michimussato/OpenStudioLandscapes/blob/main/wiki/guides/harbor.md'},
                 'Service': {'Type': 'simple', 'User': 'root', 'Group': 'root', 'Restart': 'always',
                             'WorkingDirectory': '/home/michael/git/repos/OpenStudioLandscapesUtil-HarborCLI/tests',
                             'ExecStart': '/usr/local/bin/docker compose --progress plain --file /home/michael/git/repos/OpenStudioLandscapesUtil-HarborCLI/tests/bin/docker-compose.yml --project-name openstudiolandscapes-harbor up --remove-orphans',
@@ -248,7 +250,7 @@ def test_systemd_unit_dict():
         "--progress",
         harbor_cli.DOCKER_PROGRESS[2],
         "--file",
-        pathlib.Path(__file__).parent.joinpath(harbor_cli._HARBOR_BIN_DIR, "docker-compose.yml").as_posix(),
+        pathlib.Path(__file__).parent.joinpath(harbor_cli.OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR, "docker-compose.yml").as_posix(),
         "--project-name",
         "openstudiolandscapes-harbor",
     ]
@@ -293,7 +295,7 @@ def test_systemd_install():
         "--progress",
         harbor_cli.DOCKER_PROGRESS[2],
         "--file",
-        pathlib.Path(__file__).parent.joinpath(harbor_cli._HARBOR_BIN_DIR, "docker-compose.yml").as_posix(),
+        pathlib.Path(__file__).parent.joinpath(harbor_cli.OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR, "docker-compose.yml").as_posix(),
         "--project-name",
         "openstudiolandscapes-harbor",
     ]
@@ -303,7 +305,7 @@ def test_systemd_install():
         outfile=pathlib.Path(__file__).parent.joinpath("harbor.unit"),
         start=True,
         enable=True,
-        harbor_root_dir=pathlib.Path(__file__).parent,
+        harbor_bin_dir=pathlib.Path(__file__).parent,
     )
 
     assert result == expected
@@ -429,13 +431,16 @@ def test_curlify():
         '-H "Content-Length: 58"',
         '-d',
         '\'{"project_name": "my-harbor-test-project", "public": true}\'',
-        "'http://harbor.openstudiolandscapes.lan:80/api/v2.0/projects'",
+        "'http://harbor.openstudiolandscapes.wan:99/api/v2.0/projects'",
     ]
 
     project_name_ = "my-harbor-test-project"
 
+    host="harbor.openstudiolandscapes.wan"
+    port = 99
+
     _project_create_dict: dict = {
-        "endpoint": f"{harbor_cli.OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT.format(host='harbor.openstudiolandscapes.lan', port=80)}/projects",
+        "endpoint": f"http://{host}:{port}{harbor_cli.OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT}/projects",
         "method": harbor_cli.RequestMethod.POST.value,
         "headers": {
             "accept": "application/json",

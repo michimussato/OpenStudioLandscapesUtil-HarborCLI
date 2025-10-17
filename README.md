@@ -59,8 +59,9 @@ source .venv/bin/activate
 
 ```
 $ openstudiolandscapesutil-harborcli --help
-usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] [--dot-env OPENSTUDIOLANDSCAPES__DOT_ENV] [--user OPENSTUDIOLANDSCAPES__HARBOR_ADMIN] [--password OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD] [--host OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME] [--port OPENSTUDIOLANDSCAPES__HARBOR_PORT]
-                                       [--harbor-root-dir OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR]
+usage: OpenStudioLandscapes Harbor CLI [-h] [--version] [-v] [-vv] [--user OPENSTUDIOLANDSCAPES__HARBOR_ADMIN] [--password OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD] [--host OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME] [--port OPENSTUDIOLANDSCAPES__HARBOR_PORT]
+                                       [--harbor-root-dir OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR] [--harbor-download OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR] [--harbor-bin OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR] [--harbor-data OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR]
+                                       [--harbor-prepare OPENSTUDIOLANDSCAPES__HARBOR_PREPARE]
                                        {prepare,systemd,project} ...
 
 A tool to facilitate Harbor setup and getting it up and running using systemd.
@@ -73,18 +74,24 @@ options:
   --version             show program's version number and exit
   -v, --verbose         set loglevel to INFO (default: None)
   -vv, --very-verbose   set loglevel to DEBUG (default: None)
-  --dot-env OPENSTUDIOLANDSCAPES__DOT_ENV
-                        Full path to the .env file. (default: .env)
   --user OPENSTUDIOLANDSCAPES__HARBOR_ADMIN
                         Harbor Admin User. (default: admin)
   --password OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD
                         Harbor Admin Password. (default: Harbor12345)
   --host OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME
-                        The host where Harbor is running (FQDN). (default: harbor.openstudiolandscapes.lan)
+                        The host where Harbor is running (FQDN). (default: harbor.{OPENSTUDIOLANDSCAPES__DOMAIN_LAN})
   --port OPENSTUDIOLANDSCAPES__HARBOR_PORT
                         The port where Harbor is listening. (default: 80)
   --harbor-root-dir OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR
-                        Full path of the Harbor root directory. (default: .harbor)
+                        Full path of the Harbor root directory. (default: /home/michael/git/repos/OpenStudioLandscapes/.harbor)
+  --harbor-download OPENSTUDIOLANDSCAPES__HARBOR_DOWNLOAD_DIR
+                        Where to save the downloaded files (subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR). (default: download)
+  --harbor-bin OPENSTUDIOLANDSCAPES__HARBOR_BIN_DIR
+                        Name of the bin directory (subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR). (default: bin)
+  --harbor-data OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR
+                        Name of the data directory (subdirectory of OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR). (default: data)
+  --harbor-prepare OPENSTUDIOLANDSCAPES__HARBOR_PREPARE
+                        Name of the prepare file (file of the OPENSTUDIOLANDSCAPES__HARBOR_BIN subdirectory). (default: prepare)
 ```
 
 ### Environment
@@ -102,8 +109,6 @@ export OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME=
 export OPENSTUDIOLANDSCAPES__HARBOR_PORT=
 export OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR=
 ```
-
-
 
 Assumed, we have the following `.env` file:
 
@@ -182,9 +187,7 @@ Instead of specifying all variables manually, we can leverage `.env` files
 potentially already available:
 
 ```shell
-# set -a
 source .env
-# set +a
 ```
 
 ### Prepare
@@ -215,7 +218,6 @@ openstudiolandscapesutil-harborcli \
     --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
     --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
     prepare extract \
-    --extract-to <bin> \
     --tar-file ./download/harbor-*.tgz
 ```
 
@@ -226,9 +228,9 @@ openstudiolandscapesutil-harborcli \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
     --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
     --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
-    prepare configure \
-    --destination-directory <bin>
+    prepare configure
 ```
+
 (`configure` has a `--dry-run` flag)
 
 ```shell
@@ -238,8 +240,7 @@ openstudiolandscapesutil-harborcli \
     --host ${OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME} \
     --port ${OPENSTUDIOLANDSCAPES__HARBOR_PORT} \
     --harbor-root-dir ${OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR} \
-    prepare install \
-    --prepare-script <bin/prepare>
+    prepare install
 ```
 
 ### Systemd
