@@ -291,8 +291,7 @@ def _configure(args) -> str:
                 "location": "/var/log/harbor",
             },
         },
-        # Todo
-        "_version": "2.12.0",
+        "_version": os.environ["OPENSTUDIOLANDSCAPES__HARBOR_RELEASE"],
         "proxy": {
             "http_proxy": None,
             "https_proxy": None,

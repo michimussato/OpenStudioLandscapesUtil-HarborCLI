@@ -1,8 +1,12 @@
 import argparse
+import os
 import pathlib
 import shutil
 import textwrap
+from typing import Any, Generator
+
 import requests
+from dotenv import load_dotenv
 
 import pytest
 
@@ -18,10 +22,17 @@ __license__ = "AGPL-3.0-or-later"
 #        https://pytest-with-eric.com/pytest-best-practices/pytest-logging/
 
 
+load_dotenv(verbose=True)
+
+
+# To test against Harbor release:
+HARBOR_VERSION_ACTIVE = "2.12.2"
+
+
 def harbor_yml_data() -> str:
     ret = textwrap.dedent(
-        """\
-        _version: 2.12.0
+        f"""\
+        _version: {HARBOR_VERSION_ACTIVE}
         cache:
           enabled: false
           expire_hours: 24
@@ -77,10 +88,24 @@ def harbor_yml_data() -> str:
     return ret
 
 
-def test_auth_tokenized():
-    expected = "YWRtaW46SGFyYm9yMTIzNDU="
+# @pytest.fixture(name="fixture_harbor_yml_data")
+# def fixture_harbor_yml_data(
+#     expected_file: pathlib.Path,
+# )-> Generator[str, None, None]:
+#     yield harbor_yml_data()
+#
+#     expected_file.unlink()
 
-    result = harbor_cli.auth_tokenized(
+
+def test_harbor_version_active():
+    # as per load_dotenv()
+    assert os.environ["OPENSTUDIOLANDSCAPES__HARBOR_RELEASE"] == HARBOR_VERSION_ACTIVE
+
+
+def test_auth_tokenized():
+    expected: str = "YWRtaW46SGFyYm9yMTIzNDU="
+
+    result: str = harbor_cli.auth_tokenized(
         user="admin",
         password="Harbor12345",
     )
@@ -88,6 +113,7 @@ def test_auth_tokenized():
     assert result == expected
 
 
+# @pytest.mark.usefixtures("fixture_harbor_yml_data")
 def test_configure():
     expected: pathlib.Path = pathlib.Path(__file__).parent.joinpath("harbor.yml")
 
@@ -109,8 +135,8 @@ def test__configure_default():
     args.harbor_data = harbor_cli.OPENSTUDIOLANDSCAPES__HARBOR_DATA_DIR
 
     expected: str = textwrap.dedent(
-        """\
-        _version: 2.12.0
+        f"""\
+        _version: {HARBOR_VERSION_ACTIVE}
         cache:
           enabled: false
           expire_hours: 24
@@ -179,8 +205,8 @@ def test__configure_non_default():
     args.harbor_data = "data"
 
     expected: str = textwrap.dedent(
-        """\
-        _version: 2.12.0
+        f"""\
+        _version: {os.environ['OPENSTUDIOLANDSCAPES__HARBOR_RELEASE']}
         cache:
           enabled: false
           expire_hours: 24
