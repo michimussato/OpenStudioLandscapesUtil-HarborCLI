@@ -313,11 +313,11 @@ def test_systemd_install():
         '/usr/bin/bash',
         '-c',
         '/usr/bin/cp '
-        '/home/michael/git/repos/OpenStudioLandscapesUtil-HarborCLI/tests/harbor.unit '
-        '/usr/lib/systemd/system/harbor.service && /usr/bin/chmod 644 '
-        '/usr/lib/systemd/system/harbor.service && /usr/bin/systemctl daemon-reload '
-        '&& /usr/bin/systemctl start harbor.service && /usr/bin/systemctl enable '
-        'harbor.service',
+        '/home/michael/git/repos/OpenStudioLandscapesUtil-HarborCLI/tests/openstudiolandscapes-harbor.service '
+        '/usr/lib/systemd/system/openstudiolandscapes-harbor.service && /usr/bin/chmod 644 '
+        '/usr/lib/systemd/system/openstudiolandscapes-harbor.service && /usr/bin/systemctl daemon-reload '
+        '&& /usr/bin/systemctl start openstudiolandscapes-harbor.service && /usr/bin/systemctl enable '
+        'openstudiolandscapes-harbor.service',
     ]
 
     _cmd_harbor = [
@@ -333,7 +333,7 @@ def test_systemd_install():
 
     result = harbor_cli.systemd_install(
         su_method="sudo",
-        outfile=pathlib.Path(__file__).parent.joinpath("harbor.unit"),
+        outfile=pathlib.Path(__file__).parent.joinpath(harbor_cli.SYSTEMD_UNIT.name),
         start=True,
         enable=True,
         harbor_bin_dir=pathlib.Path(__file__).parent,
@@ -348,8 +348,8 @@ def test_systemd_uninstall():
         '--user=root',
         '/usr/bin/bash',
         '-c',
-        '/usr/bin/systemctl disable --now harbor.service && /usr/bin/rm '
-        '/usr/lib/systemd/system/harbor.service && /usr/bin/systemctl daemon-reload',
+        '/usr/bin/systemctl disable --now openstudiolandscapes-harbor.service && /usr/bin/rm '
+        '/usr/lib/systemd/system/openstudiolandscapes-harbor.service && /usr/bin/systemctl daemon-reload',
     ]
 
     result = harbor_cli.systemd_uninstall(
@@ -366,7 +366,7 @@ def test_systemd_status():
     expected: list = [
         '/usr/bin/bash',
         '-c',
-        '/usr/bin/systemctl --full --no-pager harbor.service',
+        '/usr/bin/systemctl --full --no-pager openstudiolandscapes-harbor.service',
     ]
 
     result = harbor_cli.systemd_status()
@@ -378,7 +378,7 @@ def test_systemd_journalctl():
     expected: list = [
         '/usr/bin/bash',
         '-c',
-        '/usr/bin/journalctl --follow --unit harbor.service',
+        '/usr/bin/journalctl --follow --unit openstudiolandscapes-harbor.service',
     ]
 
     result = harbor_cli.systemd_journalctl()

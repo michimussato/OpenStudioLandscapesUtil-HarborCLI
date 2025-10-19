@@ -76,7 +76,7 @@ SU_METHOD = _SU_METHODS["pkexec"]
 # Required Environment Variables
 # OPENSTUDIOLANDSCAPES__DOT_ENV: pathlib.Path = pathlib.Path(os.environ.get("OPENSTUDIOLANDSCAPES__DOT_ENV", ".env"))
 OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR: pathlib.Path = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ROOT_DIR", ".harbor")
-OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME" ,"harbor.openstudiolandscapes.lan")
+OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_HOSTNAME" ,"openstudiolandscapes-harbor.openstudiolandscapes.lan")
 OPENSTUDIOLANDSCAPES__HARBOR_PORT: int = int(os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PORT", "80"))
 OPENSTUDIOLANDSCAPES__HARBOR_ADMIN: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_ADMIN", "admin")
 OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD: str = os.environ.get("OPENSTUDIOLANDSCAPES__HARBOR_PASSWORD", "Harbor12345")
@@ -93,7 +93,7 @@ OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = os.environ.get("OPENSTUDIOLANDS
 
 # OPENSTUDIOLANDSCAPES__HARBOR_API_ENDPOINT: str = "http://{host}:{port}/api/v2.0"
 
-SYSTEMD_UNIT: pathlib.Path = pathlib.Path("/usr/lib/systemd/system/harbor.service")
+SYSTEMD_UNIT: pathlib.Path = pathlib.Path("/usr/lib/systemd/system/openstudiolandscapes-harbor.service")
 
 DOCKER_PROGRESS = [
     "auto",
