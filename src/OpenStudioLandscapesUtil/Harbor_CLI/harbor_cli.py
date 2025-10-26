@@ -23,7 +23,6 @@ import argparse
 import base64
 import configparser
 import enum
-from dotenv import load_dotenv
 import os
 import pathlib
 import shutil
