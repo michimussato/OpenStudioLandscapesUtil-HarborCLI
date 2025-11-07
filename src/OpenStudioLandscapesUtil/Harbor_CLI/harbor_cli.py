@@ -599,18 +599,7 @@ def systemd_install(
 
 def systemd_uninstall(
         su_method: str,
-        disable: bool,
-        stop: bool,
-        uninstall: bool,
 ) -> list[str | Any]:
-
-    if uninstall:
-        stop = True
-        disable = True
-
-    _logger.debug(stop)
-    _logger.debug(disable)
-    _logger.debug(uninstall)
 
     systemctl_disable = [
         shutil.which("systemctl"),
@@ -1035,9 +1024,6 @@ def _cli_systemd_uninstall(
 
     result: list = systemd_uninstall(
         su_method=args.su_method,
-        disable=args.disable,
-        stop=args.stop,
-        uninstall=args.uninstall,
     )
 
     return result
